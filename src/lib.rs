@@ -715,7 +715,7 @@ impl Ext4 {
                 };
                 for i in 0..num_blocks.get() {
                     block_bitmap_handle
-                        .set(block_num + u32::from(i), true, self)
+                        .set(block_num + i, true, self)
                         .await?;
                 }
                 self.update_block_bitmap_checksum(bg_id, block_bitmap_handle)
@@ -816,7 +816,7 @@ impl Ext4 {
             self.get_block_bitmap_handle(block_group_index);
         for i in 0..num_blocks.get() {
             block_bitmap_handle
-                .set(block_offset + u32::from(i), false, self)
+                .set(block_offset + i, false, self)
                 .await?;
         }
         self.update_block_bitmap_checksum(
@@ -1299,7 +1299,7 @@ impl Debug for Ext4 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util::{load_test_disk1_rw, load_test_disk1_rw_no_fsck};
+    use crate::test_util::load_test_disk1_rw_no_fsck;
     use test_util::load_test_disk1;
 
     #[tokio::test]

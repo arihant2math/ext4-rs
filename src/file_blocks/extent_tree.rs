@@ -108,7 +108,7 @@ impl NodeHeader {
         })
     }
 
-    fn to_bytes(&self) -> [u8; ENTRY_SIZE_IN_BYTES] {
+    fn to_bytes(self) -> [u8; ENTRY_SIZE_IN_BYTES] {
         let mut bytes = [0u8; ENTRY_SIZE_IN_BYTES];
         bytes[0..2].copy_from_slice(&EXTENT_MAGIC.to_le_bytes());
         bytes[2..4].copy_from_slice(&self.num_entries.to_le_bytes());
@@ -148,7 +148,7 @@ impl ExtentInternalNode {
         })
     }
 
-    pub(crate) fn to_bytes(&self) -> [u8; 12] {
+    pub(crate) fn to_bytes(self) -> [u8; 12] {
         let mut bytes = [0u8; 12];
         bytes[0..4].copy_from_slice(&self.block_within_file.to_le_bytes());
         let (ei_start_hi, ei_start_lo) = u64_to_hilo(self.block);

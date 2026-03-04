@@ -49,10 +49,10 @@ impl Extent {
 
         let start_block = u64_from_hilo(u32::from(ee_start_hi), ee_start_low);
 
-        Extent::new(ee_block, start_block, ee_len)
+        Self::new(ee_block, start_block, ee_len)
     }
 
-    pub(crate) fn to_bytes(&self) -> [u8; 12] {
+    pub(crate) fn to_bytes(self) -> [u8; 12] {
         let mut bytes = [0u8; 12];
         bytes[0..4].copy_from_slice(&self.block_within_file.to_le_bytes());
         // ee_len

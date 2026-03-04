@@ -295,7 +295,7 @@ impl File {
                 let buf_offset = (i as usize) * block_size.to_usize();
                 let to_write = &buf[buf_offset
                     ..(buf_offset + block_size.to_usize()).min(buf.len())];
-                self.fs.write_to_block(block_index, 0, &to_write).await?;
+                self.fs.write_to_block(block_index, 0, to_write).await?;
             }
             self.inode.set_inline_data(tree.to_bytes());
             self.inode.set_size_in_bytes(buf.len() as u64);
@@ -450,8 +450,7 @@ pub async fn write_at(
         if bytes_remaining <= first_block_capacity {
             1
         } else {
-            1 + (bytes_remaining - first_block_capacity + block_size - 1)
-                / block_size
+            1 + (bytes_remaining - first_block_capacity).div_ceil(block_size)
         }
     }
 
@@ -535,6 +534,7 @@ pub async fn write_at(
         Ok(written)
     }
 
+    #[expect(clippy::too_many_arguments)]
     async fn write_into_uninitialized_extent(
         _ext4: &Ext4,
         _inode: &Inode,
@@ -762,7 +762,7 @@ pub async fn write_at(
                             if tried_blocks == 0 {
                                 return Ok(total_written);
                             }
-                            tried_blocks = tried_blocks / 2; // or tried_blocks - 1
+                            tried_blocks /= tried_blocks; // or tried_blocks - 1
                             if tried_blocks == 0 {
                                 return Ok(total_written);
                             }

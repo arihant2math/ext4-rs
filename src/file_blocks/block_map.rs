@@ -12,8 +12,8 @@ impl BlockMap {
     pub(crate) fn from_inode(inode: &Inode) -> Self {
         let data = inode.inline_data();
         let mut direct_blocks = [0; 12];
-        for i in 0..12 {
-            direct_blocks[i] = read_u32le(&data, i * 4);
+        for (i, direct_block) in direct_blocks.iter_mut().enumerate() {
+            *direct_block = read_u32le(&data, i * 4);
         }
         let single_indirect_block = read_u32le(&data, 12 * 4);
         let double_indirect_block = read_u32le(&data, 13 * 4);

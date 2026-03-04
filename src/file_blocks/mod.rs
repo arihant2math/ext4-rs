@@ -19,7 +19,7 @@ impl FileBlocks {
         inode: &Inode,
     ) -> Result<Self, Ext4Error> {
         if inode.flags().contains(InodeFlags::EXTENTS) {
-            Ok(FileBlocks::ExtentTree(extent_tree::ExtentTree::initialize(
+            Ok(Self::ExtentTree(extent_tree::ExtentTree::initialize(
                 ext4, inode,
             )?))
         } else {
@@ -32,18 +32,18 @@ impl FileBlocks {
         inode: &Inode,
     ) -> Result<Self, Ext4Error> {
         if inode.flags().contains(InodeFlags::EXTENTS) {
-            Ok(FileBlocks::ExtentTree(extent_tree::ExtentTree::from_inode(
+            Ok(Self::ExtentTree(extent_tree::ExtentTree::from_inode(
                 ext4, inode,
             )?))
         } else {
-            Ok(FileBlocks::BlockMap(block_map::BlockMap::from_inode(inode)))
+            Ok(Self::BlockMap(block_map::BlockMap::from_inode(inode)))
         }
     }
 
     pub(crate) fn to_bytes(&self) -> [u8; 60] {
         match self {
-            FileBlocks::ExtentTree(extent_tree) => extent_tree.to_bytes(),
-            FileBlocks::BlockMap(block_map) => block_map.to_bytes(),
+            Self::ExtentTree(extent_tree) => extent_tree.to_bytes(),
+            Self::BlockMap(block_map) => block_map.to_bytes(),
         }
     }
 
@@ -52,10 +52,10 @@ impl FileBlocks {
         block_index: FileBlockIndex,
     ) -> Result<Option<FsBlockIndex>, Ext4Error> {
         match self {
-            FileBlocks::ExtentTree(extent_tree) => {
+            Self::ExtentTree(extent_tree) => {
                 extent_tree.get_block(block_index).await
             }
-            FileBlocks::BlockMap(block_map) => todo!(),
+            Self::BlockMap(block_map) => todo!(),
         }
     }
 }
