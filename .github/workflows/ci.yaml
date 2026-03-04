@@ -62,7 +62,7 @@ jobs:
       # Test with std enabled and ignored tests included. Upload
       # coverage results to codecov.io.
       - uses: taiki-e/install-action@cargo-llvm-cov
-      - run: cargo llvm-cov -F std --lcov --output-path lcov.info -- --include-ignored
+      - run: cargo llvm-cov -F std --lcov --output-path lcov.info
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
