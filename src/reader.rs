@@ -135,6 +135,31 @@ impl Ext4Write for Mutex<Vec<u8>> {
     }
 }
 
+#[cfg(all(feature = "std", target_family = "unix"))]
+#[async_trait]
+impl Ext4Read for std::fs::File {
+    async fn read(
+        &self,
+        start_byte: u64,
+        dst: &mut [u8],
+    ) -> Result<(), BoxedError> {
+        use std::os::unix::fs::FileExt;
+
+        let total = self
+            .read_at(dst, start_byte)
+            .map_err(|e| Box::new(e) as BoxedError)?;
+        if total != dst.len() {
+            return Err(Box::new(MemIoError {
+                start: start_byte,
+                read_len: dst.len(),
+                src_len: total,
+            })
+            .into());
+        }
+        Ok(())
+    }
+}
+
 fn read_from_bytes(src: &[u8], start_byte: u64, dst: &mut [u8]) -> Option<()> {
     let start = usize::try_from(start_byte).ok()?;
     let end = start.checked_add(dst.len())?;

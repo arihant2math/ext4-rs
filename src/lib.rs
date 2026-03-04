@@ -250,6 +250,16 @@ impl Ext4 {
         Ok(fs)
     }
 
+    #[cfg(feature = "std")]
+    /// Load an [`Ext4`] instance from a file at the given path.
+    pub async fn load_from_path<P: AsRef<std::path::Path>>(
+        path: P,
+    ) -> Result<Self, Ext4Error> {
+        let file = std::fs::File::open(path)
+            .map_err(|err| Ext4Error::Io(Box::new(err)))?;
+        Self::load(Box::new(file)).await
+    }
+
     /// Get the filesystem label.
     #[must_use]
     pub fn label(&self) -> &Label {

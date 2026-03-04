@@ -8,7 +8,7 @@
 
 use crate::{capture_cmd, run_cmd, sudo};
 use anyhow::{Result, bail};
-use ext4_rs::{Ext4, Ext4Error};
+use ext4_rs::{AsyncIterator, Ext4, Ext4Error};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs::File;
@@ -70,20 +70,20 @@ impl WalkDirEntry {
     }
 }
 
-fn new_dir_entry(
+async fn new_dir_entry(
     fs: &Ext4,
     dir_entry: ext4_rs::DirEntry,
 ) -> Result<WalkDirEntry> {
     let path = dir_entry.path();
-    let metadata = dir_entry.metadata()?;
+    let metadata = dir_entry.metadata().await?;
 
     let content = if metadata.is_symlink() {
-        let target = fs.read_link(&path)?;
+        let target = fs.read_link(&path).await?;
         FileContent::Symlink(target.into())
     } else if metadata.is_dir() {
         FileContent::Dir
     } else {
-        let data = fs.read(&path)?;
+        let data = fs.read(&path).await?;
         let hash = format!("{:x}", Sha256::digest(data));
         FileContent::Regular(hash)
     };
@@ -96,13 +96,13 @@ fn new_dir_entry(
     })
 }
 
-fn walk_with_lib(
+async fn walk_with_lib(
     fs: &Ext4,
     path: ext4_rs::Path<'_>,
 ) -> Result<Vec<WalkDirEntry>> {
     let mut output = Vec::new();
 
-    let metadata = fs.symlink_metadata(path)?;
+    let metadata = fs.symlink_metadata(path).await?;
     output.push(WalkDirEntry {
         path: ext4_rs::PathBuf::from(path).into(),
         content: FileContent::Dir,
@@ -111,7 +111,7 @@ fn walk_with_lib(
         gid: metadata.gid(),
     });
 
-    let entry_iter = match fs.read_dir(path) {
+    let mut entry_iter = match fs.read_dir(path).await {
         Ok(entry_iter) => entry_iter,
         Err(Ext4Error::Encrypted) => {
             output[0].content = FileContent::EncryptedDir;
@@ -120,7 +120,7 @@ fn walk_with_lib(
         Err(err) => return Err(err.into()),
     };
 
-    for entry in entry_iter {
+    while let Some(entry) = entry_iter.next().await {
         let entry = entry?;
         let path = entry.path();
         let name = entry.file_name();
@@ -129,9 +129,9 @@ fn walk_with_lib(
         }
 
         if entry.file_type()?.is_dir() {
-            output.extend(walk_with_lib(fs, path.as_path())?);
+            output.extend(Box::pin(walk_with_lib(fs, path.as_path())).await?);
         } else {
-            output.push(new_dir_entry(fs, entry)?);
+            output.push(new_dir_entry(fs, entry).await?);
         }
     }
 
@@ -154,7 +154,7 @@ fn is_compressed(path: &Path) -> Result<bool> {
 /// See `./bin/mount_and_walk.rs` for details of mounting and walking
 /// the filesystem. That program is run under `sudo` since `mount`
 /// requires elevated permissions.
-pub fn diff_walk(orig_path: &Path) -> Result<()> {
+pub async fn diff_walk(orig_path: &Path) -> Result<()> {
     // Build `mount_and_walk` in release mode.
     let path = env::var("PATH")?;
     run_cmd(
@@ -205,9 +205,9 @@ pub fn diff_walk(orig_path: &Path) -> Result<()> {
     };
 
     let actual = {
-        let ext4 = Ext4::load_from_path(&path)?;
+        let ext4 = Ext4::load_from_path(&path).await?;
         let before_walk = SystemTime::now();
-        let mut paths = walk_with_lib(&ext4, ext4_rs::Path::ROOT)?;
+        let mut paths = walk_with_lib(&ext4, ext4_rs::Path::ROOT).await?;
         println!(
             "walk_with_lib took {:?}",
             SystemTime::now().duration_since(before_walk).unwrap()

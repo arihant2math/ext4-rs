@@ -8,7 +8,6 @@
 
 extern crate alloc;
 
-mod bench;
 mod big_fs;
 mod dmsetup;
 mod losetup;
@@ -632,27 +631,15 @@ enum Action {
     /// Each can be used with the `diff-walk` action to verify that the
     /// library can read the whole filesystem correctly.
     DownloadBigFilesystems,
-
-    /// Benchmark the library.
-    Bench {
-        /// Path of a file containing an ext4 filesystem.
-        path: PathBuf,
-
-        /// Number of iterations to run.
-        #[arg(short, long, default_value_t = 5)]
-        iterations: u32,
-    },
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let opt = Opt::parse();
 
     match &opt.action {
         Action::CreateTestData => create_test_data(),
-        Action::DiffWalk { path } => diff_walk::diff_walk(path),
+        Action::DiffWalk { path } => diff_walk::diff_walk(path).await,
         Action::DownloadBigFilesystems => big_fs::download_big_filesystems(),
-        Action::Bench { path, iterations } => {
-            bench::run_bench(path, *iterations)
-        }
     }
 }
