@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased (0.1.0)
+## 0.1.0-alpha.1
 
 * Initial forked release
+* Asyncify the API
+* Add write support. The limitations are as follows:
+  * No support for journaling.
+  * Errors during writing can lead to filesystem corruption
+  * No support for writing to htree directories.
+  * No support for writing to files that use file block maps (i.e. filesystems with the `extents` feature disabled).
 
 # Earlier changelog (ext4-view-rs)
 

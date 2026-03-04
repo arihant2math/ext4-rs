@@ -1,4 +1,4 @@
-# ext4-rs
+# ext4plus
 
 This repository provides a Rust crate that allows access and modification to an
 [ext4] filesystem. It also works with [ext2] and [ext3] filesystems.

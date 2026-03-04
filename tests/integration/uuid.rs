@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ext4_rs::Uuid;
+use ext4plus::Uuid;
 
 /// Arbitrary test UUID as raw bytes.
 const TEST_UUID_BYTES: [u8; 16] = [

@@ -241,8 +241,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "ext4-rs"
-version = "0.1.0"
+name = "ext4plus"
+version = "0.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1042,7 +1042,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
- "ext4-rs",
+ "ext4plus",
  "gpt_disk_io",
  "libc",
  "lzma-rs",

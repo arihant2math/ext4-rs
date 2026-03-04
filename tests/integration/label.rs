@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::test_util::load_test_disk1;
-use ext4_rs::Label;
+use ext4plus::Label;
 
 #[test]
 fn test_label_empty() {

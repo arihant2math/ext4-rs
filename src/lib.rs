@@ -20,7 +20,7 @@
 //! looks at files and directories in the filesystem.
 //!
 //! ```
-//! use ext4_rs::{AsyncIterator, Ext4, Ext4Error, Metadata};
+//! use ext4plus::{AsyncIterator, Ext4, Ext4Error, Metadata};
 //!
 //! #[tokio::main]
 //! async fn in_memory_example(fs_data: Vec<u8>) -> Result<(), Ext4Error> {
