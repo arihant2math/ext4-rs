@@ -10,7 +10,7 @@ The crate is `no_std`, so it can be used in embedded or osdev contexts. However,
 
 This project is a hard fork of [ext4-view-rs](https://github.com/nicholasbishop/ext4-view-rs/),
 which is a read-only ext4 library.
-The goal of this fork is to add write support, which requires some significant changes to the API and internal design.
+The goal of this fork is to add write and async support, which requires some significant changes to the API and internal design.
 
 Additionally, due to the need for more low-level access to the filesystem, this crate exposes a greater API surface.
 
