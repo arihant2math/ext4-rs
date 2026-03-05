@@ -3,6 +3,7 @@
 ## [Unreleased]
 * Support writing to block maps when only using direct block pointers
 * Support creating inodes with the `extents` feature disabled
+* Green CI (no hidden panics)
 
 ## 0.1.0-alpha.1
 
