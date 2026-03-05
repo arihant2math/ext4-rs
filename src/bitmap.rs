@@ -66,7 +66,13 @@ impl BitmapHandle {
                 if dst[0] != 0 {
                     for bit_index in 0..8 {
                         if (dst[0] & (1 << bit_index)) != 0 {
-                            return Ok(Some(byte_index * 8 + bit_index));
+                            return Ok(Some(
+                                byte_index
+                                    .checked_mul(8)
+                                    .unwrap()
+                                    .checked_add(bit_index)
+                                    .unwrap(),
+                            ));
                         }
                     }
                 }
@@ -75,7 +81,13 @@ impl BitmapHandle {
                 if dst[0] != 0xFF {
                     for bit_index in 0..8 {
                         if (dst[0] & (1 << bit_index)) == 0 {
-                            return Ok(Some(byte_index * 8 + bit_index));
+                            return Ok(Some(
+                                byte_index
+                                    .checked_mul(8)
+                                    .unwrap()
+                                    .checked_add(bit_index)
+                                    .unwrap(),
+                            ));
                         }
                     }
                 }
@@ -93,15 +105,25 @@ impl BitmapHandle {
         ext4: &Ext4,
     ) -> Result<Option<u32>, Ext4Error> {
         let mut dst = [0; 1];
-        let mut count = 0;
+        let mut count: u32 = 0;
         for byte_index in 0..ext4.0.superblock.block_size().to_u32() {
             ext4.read_from_block(self.block, byte_index, &mut dst)
                 .await?;
             for bit_index in 0..8 {
                 if ((dst[0] & (1 << bit_index)) != 0) == value {
-                    count += 1;
+                    count = count.checked_add(1).unwrap();
                     if count == n {
-                        return Ok(Some(byte_index * 8 + bit_index + 1 - n));
+                        return Ok(Some(
+                            byte_index
+                                .checked_mul(8)
+                                .unwrap()
+                                .checked_add(bit_index)
+                                .unwrap()
+                                .checked_add(1)
+                                .unwrap()
+                                .checked_sub(n)
+                                .unwrap(),
+                        ));
                     }
                 } else {
                     count = 0;
@@ -134,9 +156,9 @@ mod tests {
         let bitmap = fs.get_block_bitmap_handle(0);
         let first = bitmap.find_first(false, &fs).await.unwrap();
         // Ensure false
-        assert_eq!(bitmap.query(first.unwrap(), &fs).await.unwrap(), false);
+        assert!(!bitmap.query(first.unwrap(), &fs).await.unwrap());
         let first = bitmap.find_first(true, &fs).await.unwrap();
         // Ensure true
-        assert_eq!(bitmap.query(first.unwrap(), &fs).await.unwrap(), true);
+        assert!(bitmap.query(first.unwrap(), &fs).await.unwrap());
     }
 }
