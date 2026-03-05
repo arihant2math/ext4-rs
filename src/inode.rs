@@ -267,7 +267,6 @@ impl Inode {
             flags |= InodeFlags::EXTENTS;
         } else {
             flags &= !InodeFlags::EXTENTS;
-            todo!("Support creating inodes without extents");
         }
         inode.set_flags(flags);
         let blocks = FileBlocks::initialize(ext4.clone(), &inode)?;

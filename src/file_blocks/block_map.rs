@@ -10,6 +10,15 @@ pub(crate) struct BlockMap {
 }
 
 impl BlockMap {
+    pub(crate) fn initialize() -> Self {
+        Self {
+            direct_blocks: [0; 12],
+            single_indirect_block: 0,
+            double_indirect_block: 0,
+            triple_indirect_block: 0,
+        }
+    }
+
     pub(crate) fn from_inode(inode: &Inode) -> Self {
         let data = inode.inline_data();
         let mut direct_blocks = [0; 12];

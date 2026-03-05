@@ -23,7 +23,7 @@ impl FileBlocks {
                 ext4, inode,
             )?))
         } else {
-            unimplemented!("Non-extent file blocks are not implemented yet");
+            Ok(Self::BlockMap(block_map::BlockMap::initialize()))
         }
     }
 
