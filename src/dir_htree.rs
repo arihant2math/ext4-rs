@@ -582,7 +582,7 @@ mod tests {
             fs.path_to_inode(dir, FollowSymlinks::All).await.unwrap();
         let mut iter =
             ReadDir::new(fs.clone(), &dir_inode, PathBuf::from(dir)).unwrap();
-        let mut count = 0;
+        let mut count: usize = 0;
         while let Some(iter_entry) = iter.next().await {
             let iter_entry = iter_entry.unwrap();
             let htree_entry =
@@ -591,7 +591,7 @@ mod tests {
                     .unwrap();
             assert_eq!(htree_entry.file_name(), iter_entry.file_name());
             assert_eq!(htree_entry.inode, iter_entry.inode);
-            count += 1;
+            count = count.checked_add(1).unwrap();
         }
         count
     }
