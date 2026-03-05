@@ -949,7 +949,7 @@ impl ExtentTree {
             let mut extent_index: Option<usize> = None;
             for (i, extent) in extents.iter().enumerate() {
                 let start = extent.block_within_file;
-                let end = start + FileBlockIndex::from(extent.num_blocks);
+                let end = start.checked_add(FileBlockIndex::from(extent.num_blocks)).unwrap();
                 if split_block_within_file >= start
                     && split_block_within_file < end
                 {
@@ -976,8 +976,8 @@ impl ExtentTree {
                 return Err(Ext4Error::NoSpace);
             }
 
-            let left_len_u32 = split_block_within_file - start;
-            let right_len_u32 = end - split_block_within_file;
+            let left_len_u32 = split_block_within_file.checked_sub(start).unwrap();
+            let right_len_u32 = end.checked_sub(split_block_within_file).unwrap();
             let left_len: u16 = u16::try_from(left_len_u32)
                 .map_err(|_| CorruptKind::ExtentBlock(inode))?;
             let right_len: u16 = u16::try_from(right_len_u32)
@@ -991,7 +991,7 @@ impl ExtentTree {
             };
             let right = Extent {
                 block_within_file: split_block_within_file,
-                start_block: old.start_block + FsBlockIndex::from(left_len_u32),
+                start_block: old.start_block.checked_add(FsBlockIndex::from(left_len_u32)).unwrap(),
                 num_blocks: right_len,
                 is_initialized: old.is_initialized,
             };
