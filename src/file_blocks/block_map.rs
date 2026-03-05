@@ -27,11 +27,20 @@ impl BlockMap {
         for (i, direct_block) in direct_blocks.iter_mut().enumerate() {
             *direct_block = read_u32le(&data, i.checked_mul(4).unwrap());
         }
-        let single_indirect_block = read_u32le(&data, DIRECT_BLOCKS.checked_mul(4).unwrap());
-        let double_indirect_block =
-            read_u32le(&data, (DIRECT_BLOCKS.checked_add(1).unwrap()).checked_mul(4).unwrap());
-        let triple_indirect_block =
-            read_u32le(&data, (DIRECT_BLOCKS.checked_add(2).unwrap()).checked_mul(4).unwrap());
+        let single_indirect_block =
+            read_u32le(&data, DIRECT_BLOCKS.checked_mul(4).unwrap());
+        let double_indirect_block = read_u32le(
+            &data,
+            (DIRECT_BLOCKS.checked_add(1).unwrap())
+                .checked_mul(4)
+                .unwrap(),
+        );
+        let triple_indirect_block = read_u32le(
+            &data,
+            (DIRECT_BLOCKS.checked_add(2).unwrap())
+                .checked_mul(4)
+                .unwrap(),
+        );
         Self {
             direct_blocks,
             single_indirect_block,
@@ -48,23 +57,30 @@ impl BlockMap {
             data[start..end]
                 .copy_from_slice(&self.direct_blocks[i].to_le_bytes());
         }
-        data[DIRECT_BLOCKS.checked_mul(4).unwrap()..DIRECT_BLOCKS
-            .checked_add(1)
-            .unwrap()
-            .checked_mul(4)
-            .unwrap()]
+        data[DIRECT_BLOCKS.checked_mul(4).unwrap()
+            ..DIRECT_BLOCKS
+                .checked_add(1)
+                .unwrap()
+                .checked_mul(4)
+                .unwrap()]
             .copy_from_slice(&self.single_indirect_block.to_le_bytes());
-        data[(DIRECT_BLOCKS.checked_add(1).unwrap()).checked_mul(4).unwrap()..DIRECT_BLOCKS
-            .checked_add(2)
-            .unwrap()
+        data[(DIRECT_BLOCKS.checked_add(1).unwrap())
             .checked_mul(4)
-            .unwrap()]
+            .unwrap()
+            ..DIRECT_BLOCKS
+                .checked_add(2)
+                .unwrap()
+                .checked_mul(4)
+                .unwrap()]
             .copy_from_slice(&self.double_indirect_block.to_le_bytes());
-        data[(DIRECT_BLOCKS.checked_add(2).unwrap()).checked_mul(4).unwrap()..DIRECT_BLOCKS
-            .checked_add(3)
-            .unwrap()
+        data[(DIRECT_BLOCKS.checked_add(2).unwrap())
             .checked_mul(4)
-            .unwrap()]
+            .unwrap()
+            ..DIRECT_BLOCKS
+                .checked_add(3)
+                .unwrap()
+                .checked_mul(4)
+                .unwrap()]
             .copy_from_slice(&self.triple_indirect_block.to_le_bytes());
         data
     }

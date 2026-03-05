@@ -745,9 +745,13 @@ impl Ext4 {
                 );
                 bg.write(self).await?;
                 let block_index = (u64::from(bg_id)
-                    * NonZeroU64::from(self.0.superblock.blocks_per_group())
-                        .get())
-                    + u64::from(block_num);
+                    .checked_mul(
+                        NonZeroU64::from(self.0.superblock.blocks_per_group())
+                            .get(),
+                    )
+                    .unwrap())
+                .checked_add(u64::from(block_num))
+                .unwrap();
                 return Ok(block_index);
             }
         }

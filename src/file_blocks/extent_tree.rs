@@ -180,7 +180,8 @@ impl ExtentNodeEntries {
             for i in 0..header.num_entries {
                 let offset = add_one_mul_entry_size(i);
                 let entry = Extent::from_bytes(
-                    &data[offset..offset.checked_add(ENTRY_SIZE_IN_BYTES).unwrap()],
+                    &data[offset
+                        ..offset.checked_add(ENTRY_SIZE_IN_BYTES).unwrap()],
                 );
                 entries.push(entry);
             }
@@ -192,7 +193,8 @@ impl ExtentNodeEntries {
             for i in 0..header.num_entries {
                 let offset = add_one_mul_entry_size(i);
                 let entry = ExtentInternalNode::from_bytes(
-                    &data[offset..offset.checked_add(ENTRY_SIZE_IN_BYTES).unwrap()],
+                    &data[offset
+                        ..offset.checked_add(ENTRY_SIZE_IN_BYTES).unwrap()],
                     inode,
                 )?;
                 entries.push(entry);
@@ -239,8 +241,9 @@ impl ExtentNode {
     }
 
     pub(crate) fn to_bytes(&self, checksum_base: Option<Checksum>) -> Vec<u8> {
-        let mut bytes =
-            Vec::with_capacity(self.header.checksum_offset().checked_add(4).unwrap());
+        let mut bytes = Vec::with_capacity(
+            self.header.checksum_offset().checked_add(4).unwrap(),
+        );
         bytes.extend_from_slice(&self.header.to_bytes());
         match &self.entries {
             ExtentNodeEntries::Leaf(extents) => {
@@ -271,7 +274,8 @@ impl ExtentNode {
                     return Err(());
                 }
                 extents.push(extent);
-                self.header.num_entries = self.header.num_entries.checked_add(1).unwrap();
+                self.header.num_entries =
+                    self.header.num_entries.checked_add(1).unwrap();
                 Ok(())
             }
             ExtentNodeEntries::Internal(_) => Err(()),
@@ -362,7 +366,9 @@ impl ExtentTree {
                             && block_index
                                 < extent
                                     .block_within_file
-                                    .checked_add(FileBlockIndex::from(extent.num_blocks))
+                                    .checked_add(FileBlockIndex::from(
+                                        extent.num_blocks,
+                                    ))
                                     .unwrap()
                         {
                             return Ok(Some(*extent));
@@ -407,12 +413,10 @@ impl ExtentTree {
         if let Some(extent) = self.find_extent(block_index).await? {
             let offset_within_extent =
                 block_index.checked_sub(extent.block_within_file).unwrap();
-            Ok(
-                extent
-                    .start_block
-                    .checked_add(FsBlockIndex::from(offset_within_extent))
-                    .unwrap(),
-            )
+            Ok(extent
+                .start_block
+                .checked_add(FsBlockIndex::from(offset_within_extent))
+                .unwrap())
         } else {
             Ok(0)
         }
@@ -463,7 +467,8 @@ impl ExtentTree {
         // Otherwise, panic for now
         let last_allocated = self.last_allocated_extent().await?;
         if let Some((path, last_extent)) = last_allocated {
-            if last_extent.block_within_file
+            if last_extent
+                .block_within_file
                 .checked_add(u32::from(last_extent.num_blocks))
                 .unwrap()
                 >= start
@@ -682,9 +687,8 @@ impl ExtentTree {
                                 &parent.entries
                             {
                                 if child_index > 0 {
-                                    let sibling_block = internal_nodes[
-                                        child_index.checked_sub(1).unwrap()
-                                    ]
+                                    let sibling_block = internal_nodes
+                                        [child_index.checked_sub(1).unwrap()]
                                     .block;
                                     let sibling_data = self
                                         .ext4
@@ -718,10 +722,11 @@ impl ExtentTree {
                             if let ExtentNodeEntries::Internal(internal_nodes) =
                                 &parent.entries
                             {
-                                if child_index.checked_add(1).unwrap() < internal_nodes.len() {
-                                    let sibling_block = internal_nodes[
-                                        child_index.checked_add(1).unwrap()
-                                    ]
+                                if child_index.checked_add(1).unwrap()
+                                    < internal_nodes.len()
+                                {
+                                    let sibling_block = internal_nodes
+                                        [child_index.checked_add(1).unwrap()]
                                     .block;
                                     let sibling_data = self
                                         .ext4
@@ -861,7 +866,9 @@ impl ExtentTree {
             let right = extents[insert_at];
             let phys_end = new_extent
                 .start_block
-                .checked_add(FsBlockIndex::from(u32::from(new_extent.num_blocks)))
+                .checked_add(FsBlockIndex::from(u32::from(
+                    new_extent.num_blocks,
+                )))
                 .unwrap();
             new_end == right.block_within_file
                 && phys_end == right.start_block
@@ -980,7 +987,9 @@ impl ExtentTree {
             let mut extent_index: Option<usize> = None;
             for (i, extent) in extents.iter().enumerate() {
                 let start = extent.block_within_file;
-                let end = start.checked_add(FileBlockIndex::from(extent.num_blocks)).unwrap();
+                let end = start
+                    .checked_add(FileBlockIndex::from(extent.num_blocks))
+                    .unwrap();
                 if split_block_within_file >= start
                     && split_block_within_file < end
                 {
@@ -1009,8 +1018,10 @@ impl ExtentTree {
                 return Err(Ext4Error::NoSpace);
             }
 
-            let left_len_u32 = split_block_within_file.checked_sub(start).unwrap();
-            let right_len_u32 = end.checked_sub(split_block_within_file).unwrap();
+            let left_len_u32 =
+                split_block_within_file.checked_sub(start).unwrap();
+            let right_len_u32 =
+                end.checked_sub(split_block_within_file).unwrap();
             let left_len: u16 = u16::try_from(left_len_u32)
                 .map_err(|_| CorruptKind::ExtentBlock(inode))?;
             let right_len: u16 = u16::try_from(right_len_u32)
@@ -1024,7 +1035,10 @@ impl ExtentTree {
             };
             let right = Extent {
                 block_within_file: split_block_within_file,
-                start_block: old.start_block.checked_add(FsBlockIndex::from(left_len_u32)).unwrap(),
+                start_block: old
+                    .start_block
+                    .checked_add(FsBlockIndex::from(left_len_u32))
+                    .unwrap(),
                 num_blocks: right_len,
                 is_initialized: old.is_initialized,
             };
