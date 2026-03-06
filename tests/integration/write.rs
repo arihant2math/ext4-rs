@@ -12,7 +12,16 @@ use ext4plus::{
 };
 use tokio;
 
-use super::test_util::{load_compressed_filesystem, load_test_disk1_rw};
+use super::test_util::{
+    Ext4Wrapper, load_compressed_filesystem, load_compressed_filesystem_rw,
+    load_test_disk1_rw,
+};
+
+pub async fn load_ext2_rw() -> Ext4Wrapper {
+    let (fs, data) =
+        load_compressed_filesystem_rw("test_disk_ext2.bin.zst").await;
+    Ext4Wrapper(fs, data)
+}
 
 #[tokio::test]
 async fn test_write_requires_writer() {
@@ -27,17 +36,18 @@ async fn test_write_requires_writer() {
 
 #[tokio::test]
 async fn test_write_into_hole() {
-    // Load filesystem with writer.
-    let fs = load_test_disk1_rw().await;
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
 
-    // Open the file with holes. The first two blocks are holes.
-    let mut file = fs.open("/holes").await.unwrap();
+    for fs in fses {
+        // Open the file with holes. The first two blocks are holes.
+        let mut file = fs.open("/holes").await.unwrap();
 
-    // Try to write at the start (in a hole). Should be Readonly.
-    let write = file.write_bytes(b"XYZ").await.unwrap();
-    assert_eq!(write, 3);
-    let data = fs.read("/holes").await.unwrap();
-    assert!(data.starts_with(b"XYZ"));
+        // Try to write at the start (in a hole). Should be Readonly.
+        let write = file.write_bytes(b"XYZ").await.unwrap();
+        assert_eq!(write, 3);
+        let data = fs.read("/holes").await.unwrap();
+        assert!(data.starts_with(b"XYZ"));
+    }
 }
 
 #[tokio::test]
@@ -68,19 +78,20 @@ async fn test_write_basic() {
 
 #[tokio::test]
 async fn test_write_persists_data() {
-    // Load filesystem with shared reader/writer to the same buffer.
-    let fs = load_test_disk1_rw().await;
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
 
-    // Open small_file and write within allocated space.
-    let mut file = fs.open("/small_file").await.unwrap();
-    // Overwrite first 5 bytes with "HELLO".
-    file.seek_to(0).await.unwrap();
-    let n = file.write_bytes(b"HELLO").await.unwrap();
-    assert_eq!(n, 5);
+    for fs in fses {
+        // Open small_file and write within allocated space.
+        let mut file = fs.open("/small_file").await.unwrap();
+        // Overwrite first 5 bytes with "HELLO".
+        file.seek_to(0).await.unwrap();
+        let n = file.write_bytes(b"HELLO").await.unwrap();
+        assert_eq!(n, 5);
 
-    // Read back the file and verify the change persisted.
-    let data = fs.read("/small_file").await.unwrap();
-    assert!(data.starts_with(b"HELLO"));
+        // Read back the file and verify the change persisted.
+        let data = fs.read("/small_file").await.unwrap();
+        assert!(data.starts_with(b"HELLO"));
+    }
 }
 
 #[tokio::test]
@@ -348,22 +359,27 @@ async fn test_init_directory_creates_dot_and_dotdot() {
 
 #[tokio::test]
 async fn test_truncate() {
-    let fs = load_test_disk1_rw().await;
-    let mut inode = fs
-        .path_to_inode("/small_file".try_into().unwrap(), FollowSymlinks::All)
-        .await
-        .unwrap();
-    let data = b"Hello, world! This file will be truncated.";
-    write_at(&fs, &mut inode, data, 0).await.unwrap();
-    // Truncate the file to a smaller size.
-    truncate(&fs, &mut inode, 5).await.unwrap();
-    let data = b"Hello";
-    // Read back the inode and verify new length.
-    let inode = Inode::read(&fs, inode.index).await.unwrap();
-    assert_eq!(inode.size_in_bytes(), data.len() as u64);
-    let mut file = File::open_inode(&fs, inode).unwrap();
-    let mut buf = vec![0u8; data.len()];
-    let n = file.read_bytes(&mut buf).await.unwrap();
-    assert_eq!(n, data.len());
-    assert_eq!(&buf, data);
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
+    for fs in fses {
+        let mut inode = fs
+            .path_to_inode(
+                "/small_file".try_into().unwrap(),
+                FollowSymlinks::All,
+            )
+            .await
+            .unwrap();
+        let data = b"Hello, world! This file will be truncated.";
+        write_at(&fs, &mut inode, data, 0).await.unwrap();
+        // Truncate the file to a smaller size.
+        truncate(&fs, &mut inode, 5).await.unwrap();
+        let data = b"Hello";
+        // Read back the inode and verify new length.
+        let inode = Inode::read(&fs, inode.index).await.unwrap();
+        assert_eq!(inode.size_in_bytes(), data.len() as u64);
+        let mut file = File::open_inode(&fs, inode).unwrap();
+        let mut buf = vec![0u8; data.len()];
+        let n = file.read_bytes(&mut buf).await.unwrap();
+        assert_eq!(n, data.len());
+        assert_eq!(&buf, data);
+    }
 }

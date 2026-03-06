@@ -121,7 +121,7 @@ pub(crate) async fn load_test_disk1() -> Ext4 {
 }
 
 #[allow(unreachable_pub)]
-pub struct Ext4Wrapper(Ext4, Arc<Mutex<Vec<u8>>>);
+pub struct Ext4Wrapper(pub Ext4, pub Arc<Mutex<Vec<u8>>>);
 
 impl Deref for Ext4Wrapper {
     type Target = Ext4;
