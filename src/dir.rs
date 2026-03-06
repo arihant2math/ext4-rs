@@ -25,7 +25,7 @@ use alloc::vec;
 /// Search a directory inode for an entry with the given `name`. If
 /// found, return the entry's inode, otherwise return a `NotFound`
 /// error.
-pub async fn get_dir_entry_inode_by_name(
+pub(crate) async fn get_dir_entry_inode_by_name(
     fs: &Ext4,
     dir_inode: &Inode,
     name: DirEntryName<'_>,
@@ -311,7 +311,7 @@ pub(crate) async fn remove_dir_entry_non_htree(
 ///   will be updated and persisted.
 /// - This does not modify the parent directory; callers typically still need to
 ///   link the new directory into the parent.
-pub async fn init_directory(
+pub(crate) async fn init_directory(
     fs: &Ext4,
     dir_inode: &mut Inode,
     parent_inode_index: InodeIndex,
@@ -448,6 +448,61 @@ fn write_dir_entry_bytes(
     }
 
     Ok(())
+}
+
+/// A directory, represented by its inode.
+/// This provides methods for reading and modifying the directory's entries.
+pub struct Dir {
+    fs: Ext4,
+    inode: Inode,
+}
+
+impl Dir {
+    /// Create and initialize a new directory.
+    pub async fn init(
+        fs: Ext4,
+        mut dir_inode: Inode,
+        parent_inode_index: InodeIndex,
+    ) -> Result<Self, Ext4Error> {
+        init_directory(&fs, &mut dir_inode, parent_inode_index).await?;
+        Ok(Self {
+            fs,
+            inode: dir_inode,
+        })
+    }
+
+    /// Open a directory
+    pub async fn open(fs: Ext4, inode: Inode) -> Result<Self, Ext4Error> {
+        if !inode.file_type().is_dir() {
+            return Err(Ext4Error::NotADirectory);
+        }
+        Ok(Self { fs, inode })
+    }
+
+    /// Return an iterator over the entries in this directory.
+    pub fn read_dir(&self) -> Result<ReadDir, Ext4Error> {
+        ReadDir::new(self.fs.clone(), &self.inode, PathBuf::empty())
+    }
+
+    /// Return the inode for the entry with the given name in this directory.
+    pub async fn get_entry(
+        &self,
+        name: DirEntryName<'_>,
+    ) -> Result<Inode, Ext4Error> {
+        get_dir_entry_inode_by_name(&self.fs, &self.inode, name).await
+    }
+}
+
+impl AsRef<Inode> for Dir {
+    fn as_ref(&self) -> &Inode {
+        &self.inode
+    }
+}
+
+impl AsMut<Inode> for Dir {
+    fn as_mut(&mut self) -> &mut Inode {
+        &mut self.inode
+    }
 }
 
 #[cfg(feature = "std")]

@@ -5,6 +5,7 @@
 - `File::truncate` now can be used beyond block boundaries, and will zero out new blocks as needed.
 - Add `truncate` function for `File::truncate` without a file struct.
 - Fix post-write position update in `File::write`
+- Expose `Dir` object, which is like `File`. De-exposes `get_dir_entry_inode_by_name` and `init_directory`, these can be done by `Directory` instead.
 
 ## 0.1.0-alpha.2
 

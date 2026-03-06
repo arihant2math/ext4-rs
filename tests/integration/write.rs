@@ -306,7 +306,7 @@ async fn test_init_directory_creates_dot_and_dotdot() {
     let root = fs.read_root_inode().await.unwrap();
 
     // Create a new directory inode and initialize it.
-    let mut dir_inode = fs
+    let dir_inode = fs
         .create_inode(InodeCreationOptions {
             file_type: FileType::Directory,
             mode: InodeMode::S_IRUSR
@@ -321,34 +321,28 @@ async fn test_init_directory_creates_dot_and_dotdot() {
         .await
         .unwrap();
 
-    ext4plus::init_directory(&fs, &mut dir_inode, root.index)
+    let mut dir_inode = ext4plus::Dir::init(fs.clone(), dir_inode, root.index)
         .await
         .unwrap();
 
     // Link it into the root so it becomes reachable via path resolution.
-    fs.link(&root, "new_dir".to_string(), &mut dir_inode)
+    fs.link(&root, "new_dir".to_string(), dir_inode.as_mut())
         .await
         .unwrap();
 
     // Open the directory and verify '.' and '..'.
     let opened = fs.open(Path::new("/new_dir")).await.unwrap();
 
-    let dot = ext4plus::get_dir_entry_inode_by_name(
-        &fs,
-        opened.inode(),
-        ext4plus::DirEntryName::try_from(".").unwrap(),
-    )
-    .await
-    .unwrap();
+    let dot = dir_inode
+        .get_entry(ext4plus::DirEntryName::try_from(".").unwrap())
+        .await
+        .unwrap();
     assert_eq!(dot.index, opened.inode().index);
 
-    let dotdot = ext4plus::get_dir_entry_inode_by_name(
-        &fs,
-        opened.inode(),
-        ext4plus::DirEntryName::try_from("..").unwrap(),
-    )
-    .await
-    .unwrap();
+    let dotdot = dir_inode
+        .get_entry(ext4plus::DirEntryName::try_from("..").unwrap())
+        .await
+        .unwrap();
     assert_eq!(dotdot.index, root.index);
 }
 
