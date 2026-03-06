@@ -302,7 +302,8 @@ async fn write_at_block_map(
     buf: &[u8],
     offset: u64,
 ) -> Result<usize, Ext4Error> {
-    let mut block_map = file_blocks::block_map::BlockMap::from_inode(inode);
+    let mut block_map =
+        file_blocks::block_map::BlockMap::from_inode(inode, ext4.clone());
     let block_size = ext4.0.superblock.block_size();
     let start_block =
         FileBlockIndex::try_from(offset / block_size.to_nz_u64()).unwrap();
@@ -880,7 +881,10 @@ pub async fn truncate(
                 }
             } else {
                 let mut block_map =
-                    file_blocks::block_map::BlockMap::from_inode(inode);
+                    file_blocks::block_map::BlockMap::from_inode(
+                        inode,
+                        ext4.clone(),
+                    );
                 let freed = block_map.remove_range(drop_from, drop_count)?;
                 inode.set_inline_data(block_map.to_bytes());
                 for blk in freed {

@@ -19,10 +19,10 @@ impl FileBlocks {
     ) -> Result<Self, Ext4Error> {
         if inode.flags().contains(InodeFlags::EXTENTS) {
             Ok(Self::ExtentTree(extent_tree::ExtentTree::initialize(
-                inode, ext4
+                inode, ext4,
             )?))
         } else {
-            Ok(Self::BlockMap(block_map::BlockMap::initialize()))
+            Ok(Self::BlockMap(block_map::BlockMap::initialize(ext4)))
         }
     }
 
@@ -32,10 +32,10 @@ impl FileBlocks {
     ) -> Result<Self, Ext4Error> {
         if inode.flags().contains(InodeFlags::EXTENTS) {
             Ok(Self::ExtentTree(extent_tree::ExtentTree::from_inode(
-                inode, ext4
+                inode, ext4,
             )?))
         } else {
-            Ok(Self::BlockMap(block_map::BlockMap::from_inode(inode)))
+            Ok(Self::BlockMap(block_map::BlockMap::from_inode(inode, ext4)))
         }
     }
 

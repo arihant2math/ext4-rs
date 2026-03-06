@@ -1,12 +1,13 @@
 use crate::block_index::{FileBlockIndex, FsBlockIndex};
 use crate::util::{read_u32le, usize_from_u32};
-use crate::{Ext4Error, Inode};
+use crate::{Ext4, Ext4Error, Inode};
 
 use alloc::vec::Vec;
 
 const DIRECT_BLOCKS: usize = 12;
 
 pub(crate) struct BlockMap {
+    fs: Ext4,
     direct_blocks: [u32; DIRECT_BLOCKS],
     single_indirect_block: u32,
     double_indirect_block: u32,
@@ -14,8 +15,9 @@ pub(crate) struct BlockMap {
 }
 
 impl BlockMap {
-    pub(crate) fn initialize() -> Self {
+    pub(crate) fn initialize(fs: Ext4) -> Self {
         Self {
+            fs,
             direct_blocks: [0; DIRECT_BLOCKS],
             single_indirect_block: 0,
             double_indirect_block: 0,
@@ -23,7 +25,7 @@ impl BlockMap {
         }
     }
 
-    pub(crate) fn from_inode(inode: &Inode) -> Self {
+    pub(crate) fn from_inode(inode: &Inode, fs: Ext4) -> Self {
         let data = inode.inline_data();
         let mut direct_blocks = [0; DIRECT_BLOCKS];
         for (i, direct_block) in direct_blocks.iter_mut().enumerate() {
@@ -44,6 +46,7 @@ impl BlockMap {
                 .unwrap(),
         );
         Self {
+            fs,
             direct_blocks,
             single_indirect_block,
             double_indirect_block,
