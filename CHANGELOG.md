@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix post-write position update in `File::write`
+
 ## 0.1.0-alpha.2
 
 * Support writing to block maps when only using direct block pointers

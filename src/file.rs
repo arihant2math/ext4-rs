@@ -274,7 +274,7 @@ impl File {
             .checked_add(u64::try_from(written).unwrap())
             .unwrap();
         // Update file blocks to reflect any changes from the write (e.g., new blocks allocated, extents split/merged, etc.).
-        self.file_blocks = FileBlocks::new(self.fs.clone(), &self.inode)?;
+        self.seek_to(self.position).await?;
         Ok(written)
     }
 
