@@ -6,7 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::Ext4;
 use crate::dir_block::DirBlock;
 use crate::dir_entry::DirEntryName;
 use crate::dir_htree::get_dir_entry_via_htree;
@@ -20,6 +19,7 @@ use crate::iters::read_dir::ReadDir;
 use crate::path::PathBuf;
 use crate::util::write_u32le;
 use crate::util::{read_u16le, read_u32le, write_u16le};
+use crate::Ext4;
 use alloc::vec;
 
 /// Search a directory inode for an entry with the given `name`. If
@@ -497,6 +497,66 @@ impl Dir {
         name: DirEntryName<'_>,
     ) -> Result<Inode, Ext4Error> {
         get_dir_entry_inode_by_name(&self.fs, &self.inode, name).await
+    }
+
+    /// Create a new directory entry at `path` pointing to `inode`.
+    ///
+    /// This is similar to `link(2)`. Currently only supports adding entries to
+    /// directories without an htree.
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned if:
+    /// * The current directory is a htree
+    pub async fn link(
+        &self,
+        name: DirEntryName<'_>,
+        target_inode: &mut Inode,
+    ) -> Result<(), Ext4Error> {
+        let old = target_inode.links_count();
+        let new = old.checked_add(1).ok_or(Ext4Error::Readonly)?;
+        target_inode.set_links_count(new);
+        target_inode.write(&self.fs).await?;
+        add_dir_entry_non_htree(
+            &self.fs,
+            &self.inode,
+            name,
+            target_inode.index,
+            target_inode.file_type(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Remove a directory entry at `path`.
+    ///
+    /// This is similar to `unlink(2)` for non-directories. Currently only supports
+    /// removing entries from directories without an htree.
+    ///
+    /// # Errors
+    ///
+    /// An error will be returned if:
+    /// * The current directory is a htree (`Readonly`)
+    /// * The entry does not exist (`NotFound`)
+    /// * The entry is "." or ".." (`DotEntry`)
+    pub async fn unlink(
+        &self,
+        name: DirEntryName<'_>,
+        mut inode: Inode,
+    ) -> Result<Option<Inode>, Ext4Error> {
+        if name.0 == b"." || name.0 == b".." {
+            return Err(Ext4Error::DotEntry);
+        }
+        let old = inode.links_count();
+        inode.set_links_count(old.saturating_sub(1));
+        inode.write(&self.fs).await?;
+        remove_dir_entry_non_htree(&self.fs, &self.inode, name).await?;
+        if inode.links_count() == 0 {
+            self.fs.delete_file(inode).await?;
+            Ok(None)
+        } else {
+            Ok(Some(inode))
+        }
     }
 }
 

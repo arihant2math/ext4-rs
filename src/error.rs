@@ -100,6 +100,9 @@ pub enum Ext4Error {
 
     /// Already exists
     AlreadyExists,
+
+    /// Cannot delete "." or ".." directory entries.
+    DotEntry,
 }
 
 impl Ext4Error {
@@ -141,6 +144,9 @@ impl Display for Ext4Error {
             Self::Readonly => write!(f, "filesystem is read-only"),
             Self::NoSpace => write!(f, "no space left on device"),
             Self::AlreadyExists => write!(f, "file already exists"),
+            Self::DotEntry => {
+                write!(f, "cannot delete \".\" or \"..\" directory entry")
+            }
         }
     }
 }
@@ -162,7 +168,8 @@ impl From<Ext4Error> for std::io::Error {
             Ext4Error::Corrupt(_)
             | Ext4Error::Incompatible(_)
             | Ext4Error::PathTooLong
-            | Ext4Error::TooManySymlinks => Self::other(e),
+            | Ext4Error::TooManySymlinks
+            | Ext4Error::DotEntry => Self::other(e),
 
             Ext4Error::FileTooLarge => FileTooLarge.into(),
             Ext4Error::Io(inner) => Self::other(inner),

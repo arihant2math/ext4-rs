@@ -1180,101 +1180,11 @@ impl Ext4 {
             .await
     }
 
-    /// Create a new directory entry at `path` pointing to `inode`.
-    ///
-    /// This is similar to `link(2)`. Currently only supports adding entries to
-    /// directories without an htree.
-    ///
-    /// # Errors
-    ///
-    /// An error will be returned if:
-    /// * `path` is not absolute.
-    /// * The parent directory does not exist or is not a directory.
-    /// * The operation would require allocating a block (returns [`Ext4Error::Readonly`]).
-    pub async fn link(
-        &self,
-        parent_inode: &Inode,
-        name: String,
-        inode: &mut Inode,
-    ) -> Result<(), Ext4Error> {
-        if !parent_inode.file_type().is_dir() {
-            return Err(Ext4Error::NotADirectory);
-        }
-        async fn inner(
-            fs: &Ext4,
-            parent_inode: &Inode,
-            name: String,
-            inode: &mut Inode,
-        ) -> Result<(), Ext4Error> {
-            let old = inode.links_count();
-            let new = old.checked_add(1).ok_or(Ext4Error::Readonly)?;
-            inode.set_links_count(new);
-            inode.write(fs).await?;
-            let name = DirEntryName::try_from(name.as_str())
-                .map_err(|_| Ext4Error::MalformedPath)?;
-            dir::add_dir_entry_non_htree(
-                fs,
-                parent_inode,
-                name,
-                inode.index,
-                inode.file_type(),
-            )
-            .await?;
-            Ok(())
-        }
-
-        inner(self, parent_inode, name, inode).await
-    }
-
-    /// Remove a directory entry at `path`.
-    ///
-    /// This is similar to `unlink(2)` for non-directories. Currently only supports
-    /// removing entries from directories without an htree.
-    ///
-    /// # Errors
-    ///
-    /// An error will be returned if:
-    /// * The parent inode is not a directory.
-    /// * adding `name` to the parent directory would require allocating a block (returns [`Ext4Error::Readonly`]).
-    /// * `name` causes a malformed path
-    pub async fn unlink(
-        &self,
-        parent_inode: &Inode,
-        name: String,
-        inode: Inode,
-    ) -> Result<Option<Inode>, Ext4Error> {
-        if !parent_inode.file_type().is_dir() {
-            return Err(Ext4Error::NotADirectory);
-        }
-
-        async fn inner(
-            fs: &Ext4,
-            parent_inode: &Inode,
-            name: String,
-            mut inode: Inode,
-        ) -> Result<Option<Inode>, Ext4Error> {
-            let old = inode.links_count();
-            inode.set_links_count(old.saturating_sub(1));
-            inode.write(fs).await?;
-            let name = DirEntryName::try_from(name.as_str())
-                .map_err(|_| Ext4Error::MalformedPath)?;
-            dir::remove_dir_entry_non_htree(fs, parent_inode, name).await?;
-            if inode.links_count() == 0 {
-                fs.delete_file(inode).await?;
-                Ok(None)
-            } else {
-                Ok(Some(inode))
-            }
-        }
-
-        inner(self, parent_inode, name, inode).await
-    }
-
     /// Create a symbolic link at `path` pointing to `target`.
     pub async fn symlink(
         &self,
-        parent_inode: &Inode,
-        name: String,
+        parent_dir: &Dir,
+        name: DirEntryName<'_>,
         target: PathBuf,
         uid: u32,
         gid: u32,
@@ -1304,7 +1214,7 @@ impl Ext4 {
             let target_bytes = target.as_ref();
             write_at(self, &mut inode, target_bytes, 0).await?;
         }
-        self.link(parent_inode, name, &mut inode).await?;
+        parent_dir.link(name, &mut inode).await?;
         Ok(inode)
     }
 }

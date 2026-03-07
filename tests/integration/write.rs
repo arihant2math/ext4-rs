@@ -6,10 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ext4plus::{
-    AsyncIterator, Ext4Error, File, FileType, FollowSymlinks, Inode,
-    InodeCreationOptions, InodeFlags, InodeMode, Path, truncate, write_at,
-};
+use ext4plus::{AsyncIterator, Dir, Ext4Error, File, FileType, FollowSymlinks, Inode, InodeCreationOptions, InodeFlags, InodeMode, Path, truncate, write_at, DirEntryName};
 use tokio;
 
 use super::test_util::{
@@ -145,12 +142,10 @@ async fn test_inode_creation() {
     );
     assert_eq!(new_inode.metadata().uid, 0);
     assert_eq!(new_inode.metadata().gid, 0);
-    let root_inode = fs
-        .path_to_inode(Path::try_from("/").unwrap(), FollowSymlinks::All)
-        .await
-        .unwrap();
+    let root_inode = fs.read_root_inode().await.unwrap();
+    let root_dir = Dir::open(fs.0.clone(), root_inode).await.unwrap();
     // Link the new inode into the root directory.
-    fs.link(&root_inode, "new_file".to_string(), &mut new_inode)
+    root_dir.link(DirEntryName::try_from(b"new_file").unwrap(), &mut new_inode)
         .await
         .unwrap();
     // Ensure the new file is visible at the expected path.
@@ -170,14 +165,12 @@ async fn test_inode_deletion() {
         .path_to_inode(Path::try_from("/").unwrap(), FollowSymlinks::All)
         .await
         .unwrap();
+    let root_dir = Dir::open(fs.0.clone(), root_inode).await.unwrap();
     let empty_inode = fs
         .path_to_inode("/empty_file".try_into().unwrap(), FollowSymlinks::All)
         .await
         .unwrap();
-    let inode = fs
-        .unlink(&root_inode, "empty_file".to_string(), empty_inode)
-        .await
-        .unwrap();
+    let inode = root_dir.unlink(DirEntryName::try_from(b"empty_file").unwrap(), empty_inode).await.unwrap();
     assert!(inode.is_none());
     // Ensure the file is no longer visible.
     let err = fs
@@ -314,7 +307,7 @@ async fn test_multi_block_write() {
 #[tokio::test]
 async fn test_init_directory_creates_dot_and_dotdot() {
     let fs = load_test_disk1_rw().await;
-    let root = fs.read_root_inode().await.unwrap();
+    let root_dir = Dir::open(fs.0.clone(), fs.read_root_inode().await.unwrap()).await.unwrap();
 
     // Create a new directory inode and initialize it.
     let dir_inode = fs
@@ -332,12 +325,13 @@ async fn test_init_directory_creates_dot_and_dotdot() {
         .await
         .unwrap();
 
-    let mut dir_inode = ext4plus::Dir::init(fs.clone(), dir_inode, root.index)
+    let mut dir_inode = Dir::init(fs.clone(), dir_inode, root_dir.as_ref().index)
         .await
         .unwrap();
 
     // Link it into the root so it becomes reachable via path resolution.
-    fs.link(&root, "new_dir".to_string(), dir_inode.as_mut())
+    root_dir
+        .link(DirEntryName::try_from(b"new_dir").unwrap(), dir_inode.as_mut())
         .await
         .unwrap();
 
@@ -345,16 +339,16 @@ async fn test_init_directory_creates_dot_and_dotdot() {
     let opened = fs.open(Path::new("/new_dir")).await.unwrap();
 
     let dot = dir_inode
-        .get_entry(ext4plus::DirEntryName::try_from(".").unwrap())
+        .get_entry(DirEntryName::try_from(".").unwrap())
         .await
         .unwrap();
     assert_eq!(dot.index, opened.inode().index);
 
     let dotdot = dir_inode
-        .get_entry(ext4plus::DirEntryName::try_from("..").unwrap())
+        .get_entry(DirEntryName::try_from("..").unwrap())
         .await
         .unwrap();
-    assert_eq!(dotdot.index, root.index);
+    assert_eq!(dotdot.index, root_dir.as_ref().index);
     for i in dir_inode.read_dir().unwrap().collect().await {
         i.unwrap();
     }

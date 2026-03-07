@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- BREAKING: Removes `Ext4::link` and `Ext4::unlink`. These are superseded by `Dir::link` and `Dir::unlink`, which allow
+  for any valid byte string to be a dirname, instead of just valid UTF-8.
 - Fix incorrect checksum updating when initializing directory, leading to the last entry being reported as corrupted.
 
 ## 0.1.0-alpha.3
