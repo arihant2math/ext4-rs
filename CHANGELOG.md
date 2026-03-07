@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-## 0.1.0-alpha.4
+- BREAKING: `Dir` now uses `inode()` and `inode_mut()` instead of `AsRef` and `AsMut` for consistent API with `File`.
+
+## 0.1.0-alpha.3
 
 - BREAKING: Removes `Ext4::link` and `Ext4::unlink`. These are superseded by `Dir::link` and `Dir::unlink`, which allow
   for any valid byte string to be a dirname, instead of just valid UTF-8.

@@ -21,6 +21,7 @@ use crate::path::PathBuf;
 use crate::util::write_u32le;
 use crate::util::{read_u16le, read_u32le, write_u16le};
 use alloc::vec;
+use core::ops::{Deref, DerefMut};
 
 /// Search a directory inode for an entry with the given `name`. If
 /// found, return the entry's inode, otherwise return a `NotFound`
@@ -558,16 +559,14 @@ impl Dir {
             Ok(Some(inode))
         }
     }
-}
 
-impl AsRef<Inode> for Dir {
-    fn as_ref(&self) -> &Inode {
+    #[must_use]
+    pub fn inode(&self) -> &Inode {
         &self.inode
     }
-}
 
-impl AsMut<Inode> for Dir {
-    fn as_mut(&mut self) -> &mut Inode {
+    #[must_use]
+    pub fn inode_mut(&mut self) -> &mut Inode {
         &mut self.inode
     }
 }
