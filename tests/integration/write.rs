@@ -277,39 +277,41 @@ async fn test_existing_file_grow() {
 
 #[tokio::test]
 async fn test_multi_block_write() {
-    let fs = load_test_disk1_rw().await;
-    let mut inode = fs
-        .path_to_inode("/small_file".try_into().unwrap(), FollowSymlinks::All)
-        .await
-        .unwrap();
-    let data = vec![b'A'; 10000];
-    let mut total_written = 0;
-    while total_written < data.len() {
-        let n = write_at(
-            &fs,
-            &mut inode,
-            &data[total_written..],
-            total_written as u64,
-        )
-        .await
-        .unwrap();
-        assert!(n > 0);
-        total_written += n;
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
+    for fs in fses {
+        let mut inode = fs
+            .path_to_inode("/small_file".try_into().unwrap(), FollowSymlinks::All)
+            .await
+            .unwrap();
+        let data = vec![b'A'; 10000];
+        let mut total_written = 0;
+        while total_written < data.len() {
+            let n = write_at(
+                &fs,
+                &mut inode,
+                &data[total_written..],
+                total_written as u64,
+            )
+                .await
+                .unwrap();
+            assert!(n > 0);
+            total_written += n;
+        }
+        assert_eq!(total_written, data.len());
+        // Read back the inode and verify new length.
+        let inode = Inode::read(&fs, inode.index).await.unwrap();
+        assert_eq!(inode.size_in_bytes(), data.len() as u64);
+        let mut file = File::open_inode(&fs, inode).unwrap();
+        let mut buf = vec![0u8; data.len()];
+        let mut total_read = 0;
+        while total_read < data.len() {
+            let n = file.read_bytes(&mut buf[total_read..]).await.unwrap();
+            assert!(n > 0);
+            total_read += n;
+        }
+        assert_eq!(total_read, data.len());
+        assert_eq!(&buf, &data);
     }
-    assert_eq!(total_written, data.len());
-    // Read back the inode and verify new length.
-    let inode = Inode::read(&fs, inode.index).await.unwrap();
-    assert_eq!(inode.size_in_bytes(), data.len() as u64);
-    let mut file = File::open_inode(&fs, inode).unwrap();
-    let mut buf = vec![0u8; data.len()];
-    let mut total_read = 0;
-    while total_read < data.len() {
-        let n = file.read_bytes(&mut buf[total_read..]).await.unwrap();
-        assert!(n > 0);
-        total_read += n;
-    }
-    assert_eq!(total_read, data.len());
-    assert_eq!(&buf, &data);
 }
 
 #[tokio::test]
