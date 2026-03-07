@@ -150,7 +150,7 @@ async fn test_inode_creation() {
         assert_eq!(new_inode.metadata().uid, 0);
         assert_eq!(new_inode.metadata().gid, 0);
         let root_inode = fs.read_root_inode().await.unwrap();
-        let root_dir = Dir::open(fs.0.clone(), root_inode).await.unwrap();
+        let root_dir = Dir::open_inode(&fs.0, root_inode).await.unwrap();
         // Link the new inode into the root directory.
         root_dir
             .link(DirEntryName::try_from(b"new_file").unwrap(), &mut new_inode)
@@ -174,7 +174,7 @@ async fn test_inode_deletion() {
         .path_to_inode(Path::try_from("/").unwrap(), FollowSymlinks::All)
         .await
         .unwrap();
-    let root_dir = Dir::open(fs.0.clone(), root_inode).await.unwrap();
+    let root_dir = Dir::open_inode(&fs.0, root_inode).await.unwrap();
     let empty_inode = fs
         .path_to_inode("/empty_file".try_into().unwrap(), FollowSymlinks::All)
         .await
@@ -343,7 +343,7 @@ async fn test_init_directory_creates_dot_and_dotdot() {
     let fses = [load_test_disk1_rw().await];
     for fs in fses {
         let root_dir =
-            Dir::open(fs.0.clone(), fs.read_root_inode().await.unwrap())
+            Dir::open_inode(&fs.0, fs.read_root_inode().await.unwrap())
                 .await
                 .unwrap();
 
@@ -364,7 +364,7 @@ async fn test_init_directory_creates_dot_and_dotdot() {
             .unwrap();
 
         let mut dir_inode =
-            Dir::init(fs.clone(), dir_inode, root_dir.as_ref().index)
+            Dir::init(fs.clone(), dir_inode, root_dir.inode().index)
                 .await
                 .unwrap();
 
@@ -372,7 +372,7 @@ async fn test_init_directory_creates_dot_and_dotdot() {
         root_dir
             .link(
                 DirEntryName::try_from(b"new_dir").unwrap(),
-                dir_inode.as_mut(),
+                dir_inode.inode_mut(),
             )
             .await
             .unwrap();
@@ -393,7 +393,7 @@ async fn test_init_directory_creates_dot_and_dotdot() {
             .get_entry(DirEntryName::try_from("..").unwrap())
             .await
             .unwrap();
-        assert_eq!(dotdot.index, root_dir.as_ref().index);
+        assert_eq!(dotdot.index, root_dir.inode().index);
         for i in dir_inode.read_dir().unwrap().collect().await {
             i.unwrap();
         }

@@ -21,7 +21,6 @@ use crate::path::PathBuf;
 use crate::util::write_u32le;
 use crate::util::{read_u16le, read_u32le, write_u16le};
 use alloc::vec;
-use core::ops::{Deref, DerefMut};
 
 /// Search a directory inode for an entry with the given `name`. If
 /// found, return the entry's inode, otherwise return a `NotFound`
@@ -479,7 +478,22 @@ impl Dir {
         })
     }
 
-    /// Open a directory
+    /// Open a directory by inode.
+    pub async fn open_inode(
+        fs: &Ext4,
+        inode: Inode,
+    ) -> Result<Self, Ext4Error> {
+        if !inode.file_type().is_dir() {
+            return Err(Ext4Error::NotADirectory);
+        }
+        Ok(Self {
+            fs: fs.clone(),
+            inode,
+        })
+    }
+
+    /// Open a directory by inode.
+    #[deprecated(note = "use `Dir::open_inode` instead")]
     pub async fn open(fs: Ext4, inode: Inode) -> Result<Self, Ext4Error> {
         if !inode.file_type().is_dir() {
             return Err(Ext4Error::NotADirectory);
@@ -560,11 +574,13 @@ impl Dir {
         }
     }
 
+    /// Return the inode for this directory.
     #[must_use]
     pub fn inode(&self) -> &Inode {
         &self.inode
     }
 
+    /// Return a mutable reference to the inode for this directory.
     #[must_use]
     pub fn inode_mut(&mut self) -> &mut Inode {
         &mut self.inode
