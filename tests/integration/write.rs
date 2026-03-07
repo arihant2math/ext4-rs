@@ -6,7 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ext4plus::{AsyncIterator, Dir, Ext4Error, File, FileType, FollowSymlinks, Inode, InodeCreationOptions, InodeFlags, InodeMode, Path, truncate, write_at, DirEntryName};
+use ext4plus::{
+    AsyncIterator, Dir, DirEntryName, Ext4Error, File, FileType,
+    FollowSymlinks, Inode, InodeCreationOptions, InodeFlags, InodeMode, Path,
+    truncate, write_at,
+};
 use tokio;
 
 use super::test_util::{
@@ -145,7 +149,8 @@ async fn test_inode_creation() {
     let root_inode = fs.read_root_inode().await.unwrap();
     let root_dir = Dir::open(fs.0.clone(), root_inode).await.unwrap();
     // Link the new inode into the root directory.
-    root_dir.link(DirEntryName::try_from(b"new_file").unwrap(), &mut new_inode)
+    root_dir
+        .link(DirEntryName::try_from(b"new_file").unwrap(), &mut new_inode)
         .await
         .unwrap();
     // Ensure the new file is visible at the expected path.
@@ -170,7 +175,10 @@ async fn test_inode_deletion() {
         .path_to_inode("/empty_file".try_into().unwrap(), FollowSymlinks::All)
         .await
         .unwrap();
-    let inode = root_dir.unlink(DirEntryName::try_from(b"empty_file").unwrap(), empty_inode).await.unwrap();
+    let inode = root_dir
+        .unlink(DirEntryName::try_from(b"empty_file").unwrap(), empty_inode)
+        .await
+        .unwrap();
     assert!(inode.is_none());
     // Ensure the file is no longer visible.
     let err = fs
@@ -307,7 +315,9 @@ async fn test_multi_block_write() {
 #[tokio::test]
 async fn test_init_directory_creates_dot_and_dotdot() {
     let fs = load_test_disk1_rw().await;
-    let root_dir = Dir::open(fs.0.clone(), fs.read_root_inode().await.unwrap()).await.unwrap();
+    let root_dir = Dir::open(fs.0.clone(), fs.read_root_inode().await.unwrap())
+        .await
+        .unwrap();
 
     // Create a new directory inode and initialize it.
     let dir_inode = fs
@@ -325,13 +335,17 @@ async fn test_init_directory_creates_dot_and_dotdot() {
         .await
         .unwrap();
 
-    let mut dir_inode = Dir::init(fs.clone(), dir_inode, root_dir.as_ref().index)
-        .await
-        .unwrap();
+    let mut dir_inode =
+        Dir::init(fs.clone(), dir_inode, root_dir.as_ref().index)
+            .await
+            .unwrap();
 
     // Link it into the root so it becomes reachable via path resolution.
     root_dir
-        .link(DirEntryName::try_from(b"new_dir").unwrap(), dir_inode.as_mut())
+        .link(
+            DirEntryName::try_from(b"new_dir").unwrap(),
+            dir_inode.as_mut(),
+        )
         .await
         .unwrap();
 
