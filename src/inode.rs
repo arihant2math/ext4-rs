@@ -279,6 +279,7 @@ impl Inode {
         inode.set_mtime(inode_creation_data.time);
         inode.set_dtime(Duration::from_secs(0));
         inode.set_links_count(0);
+        inode.set_extra_size(0x9C + 4 - 128); // All fields up to and including i_projid
         let mut flags = inode_creation_data.flags;
         if ext4
             .0
@@ -432,6 +433,14 @@ impl Inode {
         }
         let i_extra_isize = read_u16le(&self.inode_data, 0x80);
         NonZeroU16::new(i_extra_isize.checked_add(128).unwrap()).unwrap()
+    }
+
+    fn set_extra_size(&mut self, extra_isize: u16) {
+        let total_size = extra_isize.checked_add(128).unwrap();
+        write_u16le(&mut self.inode_data, 0x80, extra_isize);
+        if self.inode_data.len() < usize::from(total_size) {
+            self.inode_data.resize(usize::from(total_size), 0);
+        }
     }
 
     /// Get the number of blocks in the file.

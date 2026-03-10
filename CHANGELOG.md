@@ -10,6 +10,7 @@
 - Support extra 2 bits for seconds in timestamp to avoid Y2038 problem as well as nanosecond precision.
 - Fix unused_inodes_count not being updated when allocated inodes, leading to inodes possibly being overwritten by other drivers.
 - Update `i_blocks` on writes.
+- Set `extra_size` correctly when creating an inode
 - Handle non 128/256-byte inode sizes better
 
 ## 0.1.0-alpha.3
