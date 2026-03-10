@@ -25,6 +25,7 @@ use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::num::NonZeroU32;
 use core::time::Duration;
+use std::num::NonZeroU16;
 
 /// Inode index.
 ///
@@ -425,6 +426,15 @@ impl Inode {
         }
     }
 
+    /// Get the size of the inode
+    fn entry_size(&self) -> NonZeroU16 {
+        if self.inode_data.len() < 0x80 + 2 {
+            return NonZeroU16::new(128).unwrap();
+        }
+        let i_extra_isize = read_u16le(&self.inode_data, 0x80);
+        NonZeroU16::new(i_extra_isize + 128).unwrap()
+    }
+
     /// Get the number of blocks in the file.
     ///
     /// If the file size is not an even multiple of the block size,
@@ -557,7 +567,7 @@ impl Inode {
     #[must_use]
     pub fn atime(&self) -> Duration {
         let i_atime = read_u32le(&self.inode_data, 0x8);
-        let i_atime_extra = if self.inode_data.len() >= 0x8C + 4 {
+        let i_atime_extra = if self.entry_size().get() >= 0x8C + 4 {
             Some(read_u32le(&self.inode_data, 0x8C))
         } else {
             None
@@ -569,7 +579,7 @@ impl Inode {
     pub fn set_atime(&mut self, atime: Duration) {
         let (i_atime, i_atime_extra) = duration_to_timestamp(atime);
         write_u32le(&mut self.inode_data, 0x8, i_atime);
-        if self.inode_data.len() >= 0x8C + 4 {
+        if self.entry_size().get() >= 0x8C + 4 {
             // Always write the extra field so old values don't leak.
             write_u32le(&mut self.inode_data, 0x8C, i_atime_extra.unwrap_or(0));
         }
@@ -579,7 +589,7 @@ impl Inode {
     #[must_use]
     pub fn ctime(&self) -> Duration {
         let i_ctime = read_u32le(&self.inode_data, 0xc);
-        let i_ctime_extra = if self.inode_data.len() >= 0x84 + 4 {
+        let i_ctime_extra = if self.entry_size().get() >= 0x84 + 4 {
             Some(read_u32le(&self.inode_data, 0x84))
         } else {
             None
@@ -591,7 +601,7 @@ impl Inode {
     pub fn set_ctime(&mut self, ctime: Duration) {
         let (i_ctime, i_ctime_extra) = duration_to_timestamp(ctime);
         write_u32le(&mut self.inode_data, 0xc, i_ctime);
-        if self.inode_data.len() >= 0x84 + 4 {
+        if self.entry_size().get() >= 0x84 + 4 {
             write_u32le(&mut self.inode_data, 0x84, i_ctime_extra.unwrap_or(0));
         }
     }
@@ -600,7 +610,7 @@ impl Inode {
     #[must_use]
     pub fn mtime(&self) -> Duration {
         let i_mtime = read_u32le(&self.inode_data, 0x10);
-        let i_mtime_extra = if self.inode_data.len() >= 0x88 + 4 {
+        let i_mtime_extra = if self.entry_size().get() >= 0x88 + 4 {
             Some(read_u32le(&self.inode_data, 0x88))
         } else {
             None
@@ -612,7 +622,7 @@ impl Inode {
     pub fn set_mtime(&mut self, mtime: Duration) {
         let (i_mtime, i_mtime_extra) = duration_to_timestamp(mtime);
         write_u32le(&mut self.inode_data, 0x10, i_mtime);
-        if self.inode_data.len() >= 0x88 + 4 {
+        if self.entry_size().get() >= 0x88 + 4 {
             write_u32le(&mut self.inode_data, 0x88, i_mtime_extra.unwrap_or(0));
         }
     }
