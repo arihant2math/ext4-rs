@@ -6,12 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::block_index::{FileBlockIndex, FsBlockIndex};
+use crate::block_index::FileBlockIndex;
 use crate::error::Ext4Error;
 use crate::extent::Extent;
+use crate::file_blocks::FileBlocks;
 use crate::inode::Inode;
-use crate::iters::AsyncIterator;
-use crate::iters::file_blocks::FileBlocks;
 use crate::path::Path;
 use crate::resolve::FollowSymlinks;
 use crate::util::{u64_from_usize, usize_from_u32};
@@ -28,13 +27,6 @@ pub struct File {
 
     /// Current byte offset within the file.
     position: u64,
-
-    /// Current block within the file. This is an absolute block index
-    /// within the filesystem.
-    ///
-    /// If `None`, either the next block needs to be fetched from the
-    /// `file_blocks` iterator, or the end of the file has been reached.
-    block_index: Option<FsBlockIndex>,
 }
 
 impl File {
@@ -58,9 +50,8 @@ impl File {
         Ok(Self {
             fs: fs.clone(),
             position: 0,
-            file_blocks: FileBlocks::new(fs.clone(), &inode)?,
+            file_blocks: FileBlocks::from_inode(&inode, fs.clone())?,
             inode,
-            block_index: None,
         })
     }
 
@@ -124,20 +115,6 @@ impl File {
 
         let block_size = self.fs.0.superblock.block_size();
 
-        // Get the block to read from.
-        let block_index = if let Some(block_index) = self.block_index {
-            block_index
-        } else {
-            // OK to unwrap: already checked that the position is not at
-            // the end of the file, so there must be at least one more
-            // block to read.
-            let block_index = self.file_blocks.next().await.unwrap()?;
-
-            self.block_index = Some(block_index);
-
-            block_index
-        };
-
         // Byte offset within the current block.
         //
         // OK to unwrap: block size fits in a `u32`, so an offset within
@@ -170,24 +147,21 @@ impl File {
         let buf_len_u32: u32 = buf.len().try_into().unwrap();
 
         // Read the block data, or zeros if in a hole.
+        let block_index = self
+            .file_blocks
+            .get_block(
+                FileBlockIndex::try_from(
+                    self.position / block_size.to_nz_u64(),
+                )
+                .unwrap(),
+            )
+            .await?;
         if block_index == 0 {
             buf.fill(0);
         } else {
             self.fs
                 .read_from_block(block_index, offset_within_block, buf)
                 .await?;
-        }
-
-        // OK to unwrap: reads don't extend past a block, so this is at
-        // most `block_size`, which always fits in a `u32`.
-        let new_offset_within_block: u32 =
-            offset_within_block.checked_add(buf_len_u32).unwrap();
-
-        // If the end of this block has been reached, clear
-        // `self.block_index` so that the next call fetches a new block
-        // from the iterator.
-        if new_offset_within_block >= block_size {
-            self.block_index = None;
         }
 
         // OK to unwrap: the buffer length is capped such that this
@@ -233,18 +207,6 @@ impl File {
     ///
     /// Seeking past the end of the file is allowed.
     pub async fn seek_to(&mut self, position: u64) -> Result<(), Ext4Error> {
-        // Reset iteration.
-        self.file_blocks = FileBlocks::new(self.fs.clone(), &self.inode)?;
-        self.block_index = None;
-
-        // Advance the block iterator by the number of whole blocks in
-        // `position`.
-        let num_blocks =
-            position / self.fs.0.superblock.block_size().to_nz_u64();
-        for _ in 0..num_blocks {
-            self.file_blocks.next().await;
-        }
-
         self.position = position;
 
         Ok(())
