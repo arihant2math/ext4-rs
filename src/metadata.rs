@@ -41,6 +41,9 @@ pub struct Metadata {
     /// Modification time.
     pub mtime: Duration,
 
+    /// Creation time
+    pub crtime: Option<Duration>,
+
     /// Number of hard links to the file.
     pub links_count: u16,
 }

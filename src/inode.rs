@@ -23,9 +23,8 @@ use crate::{Ext4, IncompatibleFeatures};
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::num::NonZeroU32;
+use core::num::{NonZeroU16, NonZeroU32};
 use core::time::Duration;
-use std::num::NonZeroU16;
 
 /// Inode index.
 ///
@@ -432,7 +431,7 @@ impl Inode {
             return NonZeroU16::new(128).unwrap();
         }
         let i_extra_isize = read_u16le(&self.inode_data, 0x80);
-        NonZeroU16::new(i_extra_isize + 128).unwrap()
+        NonZeroU16::new(i_extra_isize.checked_add(128).unwrap()).unwrap()
     }
 
     /// Get the number of blocks in the file.
@@ -640,6 +639,37 @@ impl Inode {
         write_u32le(&mut self.inode_data, 0x14, i_dtime);
     }
 
+    /// Get the inode's creation time, if available.
+    #[must_use]
+    pub fn crtime(&self) -> Option<Duration> {
+        if self.entry_size().get() >= 0x90 + 4 {
+            let i_crtime = read_u32le(&self.inode_data, 0x90);
+            let i_crtime_extra = if self.entry_size().get() >= 0x94 + 4 {
+                Some(read_u32le(&self.inode_data, 0x94))
+            } else {
+                None
+            };
+            Some(timestamp_to_duration(i_crtime, i_crtime_extra))
+        } else {
+            None
+        }
+    }
+
+    /// Set the inode's creation time, if the field is available.
+    pub fn set_crtime(&mut self, crtime: Duration) {
+        if self.entry_size().get() >= 0x90 + 4 {
+            let (i_crtime, i_crtime_extra) = duration_to_timestamp(crtime);
+            write_u32le(&mut self.inode_data, 0x90, i_crtime);
+            if self.entry_size().get() >= 0x94 + 4 {
+                write_u32le(
+                    &mut self.inode_data,
+                    0x94,
+                    i_crtime_extra.unwrap_or(0),
+                );
+            }
+        }
+    }
+
     /// Get the inode's links count.
     #[must_use]
     pub fn links_count(&self) -> u16 {
@@ -662,6 +692,7 @@ impl Inode {
             atime: self.atime(),
             ctime: self.ctime(),
             dtime: self.dtime(),
+            crtime: self.crtime(),
             file_type: self.file_type,
             mtime: self.mtime(),
             links_count: self.links_count(),
