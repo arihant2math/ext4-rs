@@ -58,8 +58,14 @@ impl<T: BlockMapEntry> IndirectBlock<T> {
         Ok(T::from_index(BlockIndex(entry_block_index)))
     }
 
-    async fn set(&mut self, index: usize, block_index: BlockIndex, fs: &Ext4) -> Result<(), Ext4Error> {
-        let mut block_data = fs.read_block(u64::from(self.block_index.0)).await?;
+    async fn set(
+        &mut self,
+        index: usize,
+        block_index: BlockIndex,
+        fs: &Ext4,
+    ) -> Result<(), Ext4Error> {
+        let mut block_data =
+            fs.read_block(u64::from(self.block_index.0)).await?;
         let entry_index = index.checked_mul(4).unwrap();
         if entry_index >= block_data.len() {
             todo!(
@@ -69,7 +75,8 @@ impl<T: BlockMapEntry> IndirectBlock<T> {
         }
         block_data[entry_index..entry_index.checked_add(4).unwrap()]
             .copy_from_slice(&block_index.value().to_le_bytes());
-        fs.write_to_block(u64::from(self.block_index.0), 0, &block_data).await?;
+        fs.write_to_block(u64::from(self.block_index.0), 0, &block_data)
+            .await?;
         Ok(())
     }
 }
@@ -295,17 +302,27 @@ impl BlockMap {
         if usize_from_u32(file_block_index) < DIRECT_BLOCKS {
             self.direct_blocks[usize_from_u32(file_block_index)] =
                 u32::try_from(fs_block_index).unwrap();
-        } else if usize_from_u32(file_block_index) < DIRECT_BLOCKS.checked_add(blocks_per_block.get()).unwrap() {
+        } else if usize_from_u32(file_block_index)
+            < DIRECT_BLOCKS.checked_add(blocks_per_block.get()).unwrap()
+        {
             let single_indirect_index = usize_from_u32(file_block_index)
                 .checked_sub(DIRECT_BLOCKS)
                 .unwrap();
             if self.single_indirect_block.block_index.value() == 0 {
                 // TODO: make block allocation u32 but actually where the inode is
-                let new_block_index = self.fs.alloc_block(NonZeroU32::new(1).unwrap()).await?;
-                self.single_indirect_block =
-                    IndirectBlock::new(BlockIndex(u32::try_from(new_block_index).unwrap()));
+                let new_block_index =
+                    self.fs.alloc_block(NonZeroU32::new(1).unwrap()).await?;
+                self.single_indirect_block = IndirectBlock::new(BlockIndex(
+                    u32::try_from(new_block_index).unwrap(),
+                ));
             }
-            self.single_indirect_block.set(single_indirect_index, BlockIndex(u32::try_from(fs_block_index).unwrap()), &self.fs).await?;
+            self.single_indirect_block
+                .set(
+                    single_indirect_index,
+                    BlockIndex(u32::try_from(fs_block_index).unwrap()),
+                    &self.fs,
+                )
+                .await?;
         } else {
             todo!("Implement set_block for double/triple indirect blocks");
         }
@@ -327,9 +344,8 @@ impl BlockMap {
         let mut removed_blocks = Vec::with_capacity(usize_from_u32(count));
 
         for i in start..end_usize {
-            let block = self
-                .get_block(FileBlockIndex::try_from(i).unwrap())
-                .await?;
+            let block =
+                self.get_block(FileBlockIndex::try_from(i).unwrap()).await?;
             if block != 0 {
                 removed_blocks.push(block);
             }
