@@ -138,7 +138,7 @@ async fn test_inode_creation() {
                 uid: 0,
                 gid: 0,
                 time: Default::default(),
-                flags: InodeFlags::INLINE_DATA,
+                flags: InodeFlags::empty(),
             })
             .await
             .unwrap();
