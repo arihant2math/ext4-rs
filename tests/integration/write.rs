@@ -12,7 +12,7 @@ use ext4plus::prelude::{
     truncate, write_at,
 };
 use tokio;
-
+use ext4plus::path::PathBuf;
 use super::test_util::{
     Ext4Wrapper, load_compressed_filesystem, load_compressed_filesystem_rw,
     load_test_disk1_rw,
@@ -524,5 +524,31 @@ async fn test_truncate_to_zero() {
         let mut buf = vec![0u8; 10];
         let n = file.read_bytes(&mut buf).await.unwrap();
         assert_eq!(n, 0);
+    }
+}
+
+#[tokio::test]
+async fn test_create_symlink() {
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
+    for fs in fses {
+        let root_inode = fs
+            .read_root_inode().await.unwrap();
+        let root_dir = Dir::open_inode(&fs.0, root_inode).await.unwrap();
+        fs.symlink(&root_dir, DirEntryName::try_from(b"link_to_small").unwrap(), PathBuf::try_from("/small_file").unwrap(), 0, 0, Default::default())
+            .await
+            .unwrap();
+        // Verify the symlink is visible and points to the correct target.
+        let link_inode = fs
+            .path_to_inode(
+                "/link_to_small".try_into().unwrap(),
+                FollowSymlinks::All,
+            )
+            .await
+            .unwrap();
+        let mut file = File::open_inode(&fs, link_inode).unwrap();
+        let mut buf = vec![0u8; 13];
+        let n = file.read_bytes(&mut buf).await.unwrap();
+        assert_eq!(n, 13);
+        assert_eq!(&buf, b"hello, world!");
     }
 }
