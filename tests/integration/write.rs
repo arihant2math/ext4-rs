@@ -340,9 +340,7 @@ async fn test_multi_block_write() {
 
 #[tokio::test]
 async fn test_massive_write() {
-    // TODO: Debug why block map fails
-    // let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
-    let fses = [load_test_disk1_rw().await];
+    let fses = [load_test_disk1_rw().await, load_ext2_rw().await];
     for fs in fses {
         let mut inode = fs
             .path_to_inode(

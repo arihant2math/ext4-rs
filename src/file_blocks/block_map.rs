@@ -196,6 +196,9 @@ impl BlockMap {
         } else if usize_from_u32(file_block_index)
             < DIRECT_BLOCKS.checked_add(blocks_per_block.get()).unwrap()
         {
+            if self.single_indirect_block.block_index.value() == 0 {
+                return Ok(0); // TODO: Should error
+            }
             let single_indirect_index = usize_from_u32(file_block_index)
                 .checked_sub(DIRECT_BLOCKS)
                 .unwrap();
@@ -216,6 +219,9 @@ impl BlockMap {
                 )
                 .unwrap()
         {
+            if self.double_indirect_block.block_index.value() == 0 {
+                return Ok(0); // TODO: Should error
+            }
             let double_indirect_index = usize_from_u32(file_block_index)
                 .checked_sub(DIRECT_BLOCKS)
                 .unwrap()
@@ -254,6 +260,9 @@ impl BlockMap {
                 )
                 .unwrap()
         {
+            if self.triple_indirect_block.block_index.value() == 0 {
+                return Ok(0); // TODO: Should error
+            }
             let triple_indirect_index = usize_from_u32(file_block_index)
                 .checked_sub(DIRECT_BLOCKS)
                 .unwrap()
