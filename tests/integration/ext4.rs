@@ -8,7 +8,7 @@
 
 use crate::expected_holes_data;
 use crate::test_util::load_test_disk1;
-use ext4plus::{AsyncIterator, Ext4Error, Path, PathBuf};
+use ext4plus::prelude::{AsyncIterator, Ext4Error, Path, PathBuf};
 
 #[tokio::test]
 async fn test_ext4_debug() {

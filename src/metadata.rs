@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Metadata information about a file, such as its size, permissions, and timestamps.
 
 use crate::file_type::FileType;
 use crate::inode::InodeMode;

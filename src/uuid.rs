@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Simple 128-bit UUID type used by the filesystem.
 
 use core::fmt::{self, Debug, Display, Formatter};
 

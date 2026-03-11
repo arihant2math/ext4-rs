@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Error types used by various parts of the codebase.
 
 use crate::block_index::FsBlockIndex;
 use crate::block_size::BlockSize;

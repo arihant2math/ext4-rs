@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Filesystem label type.
 
 use crate::format::{BytesDisplay, format_bytes_debug};
 use core::fmt::{self, Debug, Formatter};

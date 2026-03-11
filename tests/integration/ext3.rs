@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::test_util::load_compressed_filesystem;
-use ext4plus::{AsyncIterator, Ext4, Path};
+use ext4plus::prelude::{AsyncIterator, Ext4, Path};
 
 pub async fn load_ext3() -> Ext4 {
     load_compressed_filesystem("test_disk_ext3.bin.zst").await
