@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - BREAKING: Some imports have been moved to modules. Use `ext4plus::prelude` if you want to keep import compatibility.
+- Fix infinite loop in block allocation logic
 
 ## 0.1.0-alpha.4
 
