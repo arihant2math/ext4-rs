@@ -5,6 +5,8 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Async iterators used by various parts of the codebase.
+//! Exposed for API use, but not intended to be implemented by users of the library.
 
 use alloc::vec::Vec;
 

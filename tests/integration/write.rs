@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ext4plus::{
+use ext4plus::prelude::{
     AsyncIterator, Dir, DirEntryName, Ext4Error, File, FileType,
     FollowSymlinks, Inode, InodeCreationOptions, InodeFlags, InodeMode, Path,
     truncate, write_at,

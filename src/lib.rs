@@ -20,7 +20,7 @@
 //! looks at files and directories in the filesystem.
 //!
 //! ```
-//! use ext4plus::{AsyncIterator, Ext4, Ext4Error, Metadata};
+//! use ext4plus::prelude::{AsyncIterator, Ext4, Ext4Error, Metadata};
 //!
 //! #[tokio::main]
 //! async fn in_memory_example(fs_data: Vec<u8>) -> Result<(), Ext4Error> {
@@ -109,25 +109,26 @@ mod block_group;
 mod block_index;
 mod block_size;
 mod checksum;
-mod dir;
+pub mod dir;
 mod dir_block;
 mod dir_entry;
 mod dir_entry_hash;
 mod dir_htree;
-mod error;
+pub mod error;
 mod extent;
 mod features;
-mod file;
+pub mod file;
 mod file_blocks;
 mod file_type;
 mod format;
-mod inode;
-mod iters;
+pub mod inode;
+pub mod iters;
 mod journal;
 mod label;
 mod mem_io_error;
 mod metadata;
-mod path;
+pub mod path;
+pub mod prelude;
 mod reader;
 mod resolve;
 mod superblock;
@@ -150,28 +151,28 @@ use core::fmt::{self, Debug, Formatter};
 use core::num::NonZeroU32;
 use core::num::NonZeroU64;
 use core::time::Duration;
-use error::CorruptKind;
+use dir::Dir;
+use error::{CorruptKind, Ext4Error};
 use features::ReadOnlyCompatibleFeatures;
-use inode::{InodeIndex, get_inode_block_group_location};
+use file::{File, write_at};
+use inode::{
+    Inode, InodeCreationOptions, InodeFlags, InodeIndex, InodeMode,
+    get_inode_block_group_location,
+};
 use iters::file_blocks::FileBlocks;
 use journal::Journal;
+use path::{Path, PathBuf};
 use superblock::Superblock;
 use util::{u64_from_usize, usize_from_u32};
 
-pub use dir::Dir;
 pub use dir_entry::{DirEntry, DirEntryName, DirEntryNameError};
-pub use error::{Corrupt, Ext4Error, Incompatible};
 pub use features::IncompatibleFeatures;
-pub use file::{File, read_at, truncate, write_at};
 pub use file_type::FileType;
 pub use format::BytesDisplay;
-pub use inode::{Inode, InodeCreationOptions, InodeFlags, InodeMode};
 pub use iters::read_dir::ReadDir;
-pub use iters::{AsyncFilter, AsyncIterator, AsyncMap, AsyncSkip};
 pub use label::Label;
 pub use mem_io_error::MemIoError;
 pub use metadata::Metadata;
-pub use path::{Component, Components, Path, PathBuf, PathError};
 pub use reader::Ext4Read;
 pub use resolve::FollowSymlinks;
 pub use uuid::Uuid;

@@ -1,3 +1,4 @@
+//! Interface used by [`crate::Ext4`] to write the filesystem data to a storage
 use crate::error::BoxedError;
 use async_trait::async_trait;
 

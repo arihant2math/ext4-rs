@@ -5,6 +5,12 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Module for reading and writing file data within an [`Ext4`] filesystem.
+//!
+//! This module provides the [`File`] struct, which represents an open file and
+//! is similar in concept to [`std::fs::File`]. It also provides lower-level functions
+//! for reading and writing bytes at specific offsets within a file, which are used
+//! by the methods of [`File`] but can also be used directly if needed.
 
 use crate::block_index::FileBlockIndex;
 use crate::error::Ext4Error;

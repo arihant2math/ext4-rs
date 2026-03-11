@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Provides parsing and serialization of inodes, as well as functions for reading and writing inodes to disk.
 
 use crate::block_group::BlockGroupIndex;
 use crate::block_index::FsBlockIndex;

@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Interface used by [`crate::Ext4`] to read the filesystem data from a storage
 
 use crate::error::BoxedError;
 use alloc::boxed::Box;

@@ -14,7 +14,8 @@ mod path;
 mod uuid;
 mod write;
 
-use ext4plus::{Ext4, Ext4Read, Ext4Write};
+use ext4plus::Ext4;
+use ext4plus::prelude::{Ext4Read, Ext4Write};
 
 mod test_util {
     include!("../../src/test_util.rs");

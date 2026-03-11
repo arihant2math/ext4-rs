@@ -5,6 +5,7 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Exposes directory-related functionality, including reading and modifying directory entries.
 
 use crate::Ext4;
 use crate::dir_block::DirBlock;

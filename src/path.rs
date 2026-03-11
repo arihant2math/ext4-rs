@@ -5,6 +5,13 @@
 // <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
+//! Path types and utilities.
+//!
+//! This module defines the [`Path`] and [`PathBuf`] types, which represent
+//! filesystem paths. These types are designed to be similar to
+//! [`std::path::Path`] and [`std::path::PathBuf`], but paths are mostly arbitrary sequences of bytes,
+//! rather than UTF-8 strings. This allows the library to handle paths that may not be valid UTF-8,
+//! which can occur in some ext4 filesystems. However, paths still cannot contain null bytes.
 
 use crate::dir_entry::{DirEntryName, DirEntryNameError};
 use crate::format::{BytesDisplay, format_bytes_debug};

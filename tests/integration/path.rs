@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ext4plus::{Component, Path, PathBuf, PathError};
+use ext4plus::prelude::{Component, Path, PathBuf, PathError};
 
 #[cfg(feature = "std")]
 use std::ffi::{OsStr, OsString};
