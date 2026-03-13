@@ -1298,8 +1298,8 @@ mod tests {
         CorruptKind, ENTRY_SIZE_IN_BYTES, Ext4, Ext4Error, ExtentInternalNode,
         ExtentNode, ExtentNodeEntries, NodeHeader,
     };
-    use std::num::NonZeroU32;
     use crate::error::Corrupt;
+    use std::num::NonZeroU32;
 
     #[tokio::test]
     async fn test_extent_tree() {
@@ -1346,9 +1346,8 @@ mod tests {
         use crate::extent::Extent;
 
         let checksum_base = inode.checksum_base().clone();
-        let checksum_base_opt = ext4
-            .has_metadata_checksums()
-            .then(|| checksum_base.clone());
+        let checksum_base_opt =
+            ext4.has_metadata_checksums().then(|| checksum_base.clone());
 
         // Allocate blocks for the 2 leaf nodes.
         let leaf0_block = ext4
@@ -1392,22 +1391,20 @@ mod tests {
             }]),
         };
 
-        ext4
-            .write_to_block(
-                leaf0_block,
-                0,
-                &leaf0.to_bytes(checksum_base_opt.clone()).unwrap(),
-            )
-            .await
-            .unwrap();
-        ext4
-            .write_to_block(
-                leaf1_block,
-                0,
-                &leaf1.to_bytes(checksum_base_opt.clone()).unwrap(),
-            )
-            .await
-            .unwrap();
+        ext4.write_to_block(
+            leaf0_block,
+            0,
+            &leaf0.to_bytes(checksum_base_opt.clone()).unwrap(),
+        )
+        .await
+        .unwrap();
+        ext4.write_to_block(
+            leaf1_block,
+            0,
+            &leaf1.to_bytes(checksum_base_opt.clone()).unwrap(),
+        )
+        .await
+        .unwrap();
 
         // Construct an internal root node that points to the two leaf blocks.
         let root = ExtentNode {
@@ -1505,10 +1502,7 @@ mod tests {
         let mut bytes = ext4.read_block(leaf0_block).await.unwrap();
         // Flip a byte in the extent payload (not the checksum itself) so we avoid accidental fixups.
         bytes[ENTRY_SIZE_IN_BYTES] ^= 0x01;
-        ext4
-            .write_to_block(leaf0_block, 0, &bytes)
-            .await
-            .unwrap();
+        ext4.write_to_block(leaf0_block, 0, &bytes).await.unwrap();
 
         // Accessing an extent that forces reading leaf0 should return an error.
         let err = tree.find_extent(0).await.unwrap_err();
