@@ -10,6 +10,7 @@
 // is used in `tests` via the `include!` macro.
 
 use crate::{Ext4, Ext4Read, Ext4Write};
+#[cfg(not(feature = "sync"))]
 use async_trait::async_trait;
 use core::fmt::{Display, Formatter};
 use std::error::Error as StdError;
@@ -31,6 +32,7 @@ impl StdError for MemWriterError {}
 // Reader+Writer backed by a shared Arc<Mutex<Vec<u8>>> to verify persistence.
 pub(crate) struct MemRw(pub(crate) Arc<Mutex<Vec<u8>>>);
 
+#[cfg(not(feature = "sync"))]
 #[async_trait]
 impl Ext4Read for MemRw {
     async fn read(
@@ -52,6 +54,28 @@ impl Ext4Read for MemRw {
     }
 }
 
+#[cfg(feature = "sync")]
+impl Ext4Read for MemRw {
+    fn read(
+        &self,
+        start_byte: u64,
+        dst: &mut [u8],
+    ) -> Result<(), Box<dyn StdError + Send + Sync + 'static>> {
+        let guard = self.0.lock().unwrap();
+        let start = start_byte as usize;
+        let end = start.checked_add(dst.len()).ok_or_else(|| {
+            Box::new(MemWriterError)
+                as Box<dyn StdError + Send + Sync + 'static>
+        })?;
+        if end > guard.len() {
+            return Err(Box::new(MemWriterError));
+        }
+        dst.copy_from_slice(&guard[start..end]);
+        Ok(())
+    }
+}
+
+#[cfg(not(feature = "sync"))]
 #[async_trait]
 impl Ext4Write for MemRw {
     async fn write(
@@ -73,7 +97,29 @@ impl Ext4Write for MemRw {
     }
 }
 
+#[cfg(feature = "sync")]
+impl Ext4Write for MemRw {
+    fn write(
+        &self,
+        start_byte: u64,
+        src: &[u8],
+    ) -> Result<(), Box<dyn StdError + Send + Sync + 'static>> {
+        let mut guard = self.0.lock().unwrap();
+        let start = start_byte as usize;
+        let end = start.checked_add(src.len()).ok_or_else(|| {
+            Box::new(MemWriterError)
+                as Box<dyn StdError + Send + Sync + 'static>
+        })?;
+        if end > guard.len() {
+            return Err(Box::new(MemWriterError));
+        }
+        guard[start..end].copy_from_slice(src);
+        Ok(())
+    }
+}
+
 /// Decompress a file with zstd, then load it into an `Ext4`.
+#[maybe_async::maybe_async]
 pub(crate) async fn load_compressed_filesystem(name: &str) -> Ext4 {
     // This function executes quickly, so don't bother caching.
     let output = std::process::Command::new("zstd")
@@ -90,6 +136,7 @@ pub(crate) async fn load_compressed_filesystem(name: &str) -> Ext4 {
 }
 
 /// Decompress a file with zstd, then load it into an `Ext4`.
+#[maybe_async::maybe_async]
 pub(crate) async fn load_compressed_filesystem_rw(
     name: &str,
 ) -> (Ext4, Arc<Mutex<Vec<u8>>>) {
@@ -116,6 +163,7 @@ pub(crate) async fn load_compressed_filesystem_rw(
     )
 }
 
+#[maybe_async::maybe_async]
 pub(crate) async fn load_test_disk1() -> Ext4 {
     load_compressed_filesystem("test_disk1.bin.zst").await
 }
@@ -138,12 +186,14 @@ impl Drop for Ext4Wrapper {
 }
 
 #[allow(unused)]
+#[maybe_async::maybe_async]
 pub(crate) async fn load_test_disk1_rw() -> Ext4Wrapper {
     let (fs, data) = load_compressed_filesystem_rw("test_disk1.bin.zst").await;
     Ext4Wrapper(fs, data)
 }
 
 #[allow(unused)]
+#[maybe_async::maybe_async]
 pub(crate) async fn load_test_disk1_rw_no_fsck() -> Ext4 {
     load_compressed_filesystem_rw("test_disk1.bin.zst").await.0
 }

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- BREAKING: `AsyncIterator::collect` functions like `Iterator::collect` now and requires a generic type parameter.
+- Added a sync API which is gated behind the `sync` feature flag.
 - Error when writing to immutable files.
 
 ## 0.1.0-alpha.5
